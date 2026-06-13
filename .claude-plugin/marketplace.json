@@ -1,0 +1,15 @@
+{
+  "name": "preuser-plugins",
+  "owner": {
+    "name": "preuser",
+    "url": "https://preuser.ai"
+  },
+  "plugins": [
+    {
+      "name": "preuser",
+      "source": "./preuser",
+      "description": "Set up preuser on a repo: /preuser:setup drafts your .preuser/config.yml (journeys + app bring-up) so an AI user can walk your app once per PR.",
+      "version": "0.1.0"
+    }
+  ]
+}
