@@ -28,8 +28,11 @@ in plaintext and never shown to the AI model.
    from `git remote get-url origin` (and if this is a fork, ask for the upstream `owner/name`). Show
    the user the exact `owner/name` you'll bind to and confirm.
 
-3. **Take the value secretly and seal it.** Ask for the value, then run the committed seal tool —
-   never assemble crypto yourself — piping the value on stdin so it never lands in argv/history:
+3. **Take the value secretly and seal it.** The seal tool ships with the `preuser` package — if
+   `python -m preuser.credential.seal --help` isn't available, install it first (`pip install preuser`,
+   or run via `uvx --from preuser python -m preuser.credential.seal …`). Then ask for the value and run
+   the committed tool — never assemble crypto yourself — piping the value on stdin so it never lands in
+   argv/history:
    ```bash
    printf %s 'THE_VALUE' | python -m preuser.credential.seal --repo OWNER/NAME --name NAME
    ```
