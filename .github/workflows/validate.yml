@@ -1,0 +1,44 @@
+# Static CI for the plugin marketplace: the official `claude plugin validate` (schema + command
+# frontmatter + referenced-file existence), plus greps for the gaps it doesn't cover (marketplace
+# `source:` dirs, and that /preuser:seal still references the real seal tool). No model call, no
+# secrets needed — validate is static. Behavioral `/plugin` checks stay a manual dogfood pass.
+name: validate
+
+on:
+  pull_request:
+    paths:
+      - ".claude-plugin/**"
+      - "*/.claude-plugin/**"
+      - "*/commands/**"
+      - ".github/workflows/validate.yml"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      # validate is static and makes no model call; a placeholder keeps the CLI from treating an
+      # absent key as a setup error in a fresh CI runner.
+      ANTHROPIC_API_KEY: noop-validate-is-static
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install Claude Code CLI
+        # Pinned (bump deliberately) per the no-floating-tags discipline.
+        run: npm install -g @anthropic-ai/claude-code@2.1.178
+      - name: Validate marketplace + plugins (strict)
+        run: claude plugin validate . --strict
+      - name: Cover the validator's blind spots
+        run: |
+          set -euo pipefail
+          # Every marketplace 'source' dir exists (validate does NOT check this).
+          while read -r src; do
+            test -d "$src" || { echo "::error::marketplace source dir missing: $src"; exit 1; }
+          done < <(jq -r '.plugins[].source' .claude-plugin/marketplace.json)
+          # /preuser:seal must still reference the real seal tool (catches a renamed/removed flow).
+          grep -q 'preuser\.credential\.seal' preuser/commands/seal.md \
+            || { echo "::error::seal.md no longer references 'python -m preuser.credential.seal'"; exit 1; }
+          echo "gap checks passed"
