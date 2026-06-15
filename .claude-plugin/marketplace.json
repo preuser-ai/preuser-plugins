@@ -1,5 +1,6 @@
 {
   "name": "preuser-plugins",
+  "description": "preuser's Claude Code plugins — set up preuser on your repo, author journeys, and seal credentials for the AI user.",
   "owner": {
     "name": "preuser",
     "url": "https://preuser.ai"
