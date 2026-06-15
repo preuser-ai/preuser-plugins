@@ -12,11 +12,12 @@ Work conversationally. Draft, show, confirm, then write. Do not rush to a file.
 
 ## HARD RULES — these are non-negotiable, do not violate them even if asked
 
-1. **Never write a secret, token, password, API key, or credential value** into `.preuser/config.yml`
-   or any other file. If a journey or the app needs a secret, tell the user it must be provided
-   another way (preuser does not yet have a secret store — say so plainly) and keep it out of the
-   config. Secret *names* can later go in a `secrets:` list, but that field is **reserved / not yet
-   enforced** — don't rely on it.
+1. **Never write a RAW credential value** (a password, token, API key, or any plaintext secret) into
+   `.preuser/config.yml` or any other file — that file is read from the repo's default branch and shown
+   verbatim in the PR receipt. The **ONLY** way to give preuser a credential is a **SEALED value in the
+   `sealed:` map**, produced by running the committed seal tool (Step 2.5 below). You never write the
+   plaintext anywhere and you never assemble the ciphertext yourself — the tool does it. (There is no
+   `secrets:` field anymore; if you see one in an old config, it's gone — move the value to `sealed:`.)
 2. **Draft-then-confirm.** Show the user the COMPLETE proposed `.preuser/config.yml` and get their
    explicit "yes, write it" before you create or modify any file.
 3. **Never `git commit`, `git push`, or open a pull request unless the user explicitly tells you to
@@ -29,9 +30,12 @@ Work conversationally. Draft, show, confirm, then write. Do not rush to a file.
 Before drafting anything, say plainly:
 
 > ⚠️ **What preuser captures.** When preuser runs, it records the AI user's full screen (a video) and
-> the model's inputs/outputs **verbatim and un-redacted** — that's the receipt that lets you trust
-> the verdict. So: **don't put secrets, tokens, or real personal data in a journey's `goal` or
+> the model's inputs/outputs — that's the receipt that lets you trust the verdict. So: **don't put
+> tokens, real personal data, or anything you wouldn't want on screen into a journey's `goal` or
 > `success` text**, and assume anything the agent sees on screen during a run is in the recording.
+> The one exception is a **sealed credential**: a value provided via the `sealed:` map (Step 2.5) is
+> substituted into the page only at the browser and is **redacted from the model I/O and the saved
+> bundle** — so a test-account password handled that way does not appear in the captured model log.
 > The Check preuser posts is **advisory** (it doesn't block your merge) during preview.
 
 ## Step 1 — Understand how the app runs
@@ -78,6 +82,47 @@ Then help them write **one** journey: a short `name` (≤80 chars, a stable hand
 user does), and a `success` (the visible end-state). Start with one good journey; more can be added
 later as more list entries.
 
+## Step 2.5 — A login the app can't self-signup for (only if a journey needs one)
+
+Most journeys don't need this — skip it entirely if every journey can sign up or browse as a fresh
+visitor. Do this step **only** when a journey requires logging in as an account the agent can't create
+itself (a seeded admin, a pre-existing test user). Then:
+
+1. **Ask the user ONE question, in plain words** — no crypto vocabulary. For each credential the login
+   needs, ask e.g.: *"What's the test-account password the AI user should log in with?"* (and the
+   username/email if that's not already a fixed value you can put in the `goal`). The plaintext stays
+   on their machine — say so. Pick a short snake_case name for each value, e.g. `admin_pass`,
+   `admin_user`.
+2. **Confirm the repo the value binds to.** It's sealed to the **base / default-branch repo**
+   (`owner/name`) — the repo preuser reads the config from. If you're in a **fork**, ask which repo
+   that is (the upstream they open PRs against), and use that `owner/name`, not the fork's.
+3. **Run the committed seal tool** — never build the ciphertext yourself. For each value, pipe the
+   plaintext on stdin (so it never lands in argv / shell history) and capture the `sealed:v1:…` line it
+   prints:
+
+   ```
+   printf %s "<the value the user gave you>" | python -m preuser.credential.seal --repo <owner/name> --name <secret_name>
+   ```
+
+   It prints one line: `sealed:v1:<base64>`. (If it warns about sealing to the "pinned default
+   recipient," that's expected during preview — keep the printed value.)
+4. **Write each sealed value under a top-level `sealed:` map** in the draft, keyed by the name:
+
+   ```yaml
+   sealed:
+     admin_user: "sealed:v1:…"
+     admin_pass: "sealed:v1:…"
+   ```
+
+   This is safe to commit — only preuser can decrypt it, in memory, per run.
+5. **Reference it implicitly in the journey.** Do NOT mention the sealed name or any placeholder in the
+   `goal`/`success` — just describe the login in human terms (e.g. *"Log in as the admin and …"*). At
+   run time the agent types `<preuser-secret:NAME>` itself and the real value is substituted at the
+   browser, never shown to the model.
+6. **Show the diff / the sealed block** so the user sees what was produced (the ciphertext, never the
+   plaintext), and fold it into the full draft in Step 4. A value that won't decrypt fails the run
+   **closed** (`errored`) — never a false pass or fail.
+
 ## Step 3 — Heuristic pre-check (NOT a full validation)
 
 Before showing the final draft, sanity-check it yourself — this is a **heuristic check, not the real
@@ -87,8 +132,11 @@ validator**:
 - `up.run` is present **unless** you detected a compose file (then it must be absent).
 - `ready_timeout_s` (if set) is between 1 and 900.
 - every journey has a non-empty `name`, `goal`, and `success`; names are unique; no journey text
-  contains a secret.
-- the file is valid YAML with only the known keys (`up`, `journeys`, `modalities`, `secrets`).
+  contains a raw secret (and no `goal`/`success` references a sealed name — the login is described in
+  human terms only).
+- any `sealed:` entry is a name → a `sealed:v1:…` value (a raw plaintext under `sealed:` is a bug —
+  re-run the seal tool from Step 2.5).
+- the file is valid YAML with only the known keys (`up`, `journeys`, `modalities`, `sealed`).
 
 Tell the user plainly: **this is a structural pre-check only — "structurally valid" does not mean
 "will pass."** The authoritative validation (the full schema) runs on preuser's side when your PR

@@ -1,7 +1,7 @@
 {
   "name": "preuser",
-  "description": "Set up preuser on a repo. /preuser:setup interviews you and drafts a .preuser/config.yml — the app bring-up block plus natural-language journeys an AI user walks once per PR. Draft-then-confirm; never writes secrets; never pushes without your say-so.",
-  "version": "0.1.0",
+  "description": "Set up preuser on a repo. /preuser:setup interviews you and drafts a .preuser/config.yml — the app bring-up block plus natural-language journeys an AI user walks once per PR. /preuser:seal encrypts a login credential so you commit only ciphertext. Draft-then-confirm; never writes a raw secret; never pushes without your say-so.",
+  "version": "0.2.0",
   "author": {
     "name": "preuser",
     "url": "https://preuser.ai"

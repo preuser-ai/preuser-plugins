@@ -18,13 +18,16 @@ Check and report any problems:
   time out into an `errored` verdict.
 - **`journeys`** is a non-empty list; each journey has a non-empty `name` (≤80 chars), `goal`, and
   `success`; journey `name`s are unique.
-- **No secrets** (tokens, passwords, API keys) appear anywhere in the file — especially not in a
-  journey's `goal`/`success` text.
+- **No RAW secrets** (tokens, passwords, API keys) appear anywhere in the file — especially not in a
+  journey's `goal`/`success` text. A credential is only ever provided as a **sealed value** under the
+  `sealed:` map (a name → `sealed:v1:…` envelope, produced by the seal tool in `/preuser:setup`); a
+  plaintext under `sealed:`, or a credential anywhere else, is wrong.
 - Each `success` reads like a **visible end-state on one final screen** (not "a DB row exists", not a
   multi-step "and then …" sequence). If a `success` looks un-gradeable, point it out and suggest a
   fix (see `/preuser:setup` for the rules).
 - The file is valid YAML with only the known top-level keys: `up`, `journeys`, `modalities`,
-  `secrets`.
+  `sealed`. (`secrets:` is no longer a field — flag it and tell the user to move the value to `sealed:`
+  via `/preuser:setup`.)
 
 End with the honest caveat: **a clean heuristic check does not mean the run will pass** — it means
 the config is structurally plausible. The real schema validation happens when your PR opens, and a
