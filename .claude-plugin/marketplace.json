@@ -9,7 +9,7 @@
     {
       "name": "preuser",
       "source": "./preuser",
-      "description": "Set up preuser on a repo: /preuser:setup drafts your .preuser/config.yml (journeys + app bring-up) so an AI user can walk your app once per PR; /preuser:seal encrypts a login credential to commit as ciphertext.",
+      "description": "Set up preuser on a repo: /preuser:setup drafts .preuser/config.yml targets (sandbox, static URL, or GitHub Deployment URL) plus journeys; /preuser:seal encrypts a login credential to commit as ciphertext.",
       "version": "0.2.0"
     }
   ]
