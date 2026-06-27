@@ -1,29 +1,34 @@
 ---
-description: Set up preuser on this repo — interview the user and draft a .preuser/config.yml (app bring-up + natural-language journeys an AI user walks once per PR).
+description: Set up preuser PR-sandbox checks on this repo — interview the user and draft a .preuser/config.yml (app bring-up + natural-language journeys an AI user walks once per PR).
 ---
 
-You are helping the user set up **preuser** on the repository you're currently in. preuser is a CI
-check whose "test" is an AI user that **uses the running web app like a human, once per PR**, and
-posts a pass/fail with a video receipt. Your job in this command is to **draft a
-`.preuser/config.yml`** with them — the app bring-up block plus one or more natural-language
-journeys — and then, only if they say so, open a PR.
+You are helping the user set up **preuser PR-sandbox checks** on the repository you're currently in.
+preuser can run on a PR sandbox or against a live/staging URL; this command is ONLY for the
+PR-sandbox lane. Its job is to **draft a `.preuser/config.yml`** with them — the app bring-up block
+plus one or more natural-language journeys — and then, only if they say so, open a PR. If the user
+wants to point preuser at an already-running live/staging URL, stop drafting config and send them to
+the preuser Console (`/journeys` or `/run-now`); do not add a `target_url` to `.preuser/config.yml`.
 
 Work conversationally. Draft, show, confirm, then write. Do not rush to a file.
 
 ## HARD RULES — these are non-negotiable, do not violate them even if asked
 
-1. **Never write a RAW credential value** (a password, token, API key, or any plaintext secret) into
-   `.preuser/config.yml` or any other file — that file is read from the repo's default branch and shown
-   verbatim in the PR receipt. The **ONLY** way to give preuser a credential is a **SEALED value in the
-   `sealed:` map**, produced by running the committed seal tool (Step 2.5 below). You never write the
-   plaintext anywhere and you never assemble the ciphertext yourself — the tool does it. (There is no
-   `secrets:` field anymore; if you see one in an old config, it's gone — move the value to `sealed:`.)
+1. **Never write a RAW real credential value** (a password, token, API key, or any plaintext secret)
+   into `.preuser/config.yml` or any other file — that file is read from the repo's default branch and
+   shown verbatim in the PR receipt. The **ONLY** way to give preuser a non-disposable credential is a
+   **SEALED value in the `sealed:` map**, produced by running the committed seal tool (Step 2.5 below).
+   The one exception is `up.env` for **disposable, throwaway app variables** that intentionally boot a
+   per-run test account; `up.env` is plaintext and visible by contract, so never put a real secret
+   there. There is no `secrets:` field anymore; if you see one in an old config, it's gone.
 2. **Draft-then-confirm.** Show the user the COMPLETE proposed `.preuser/config.yml` and get their
    explicit "yes, write it" before you create or modify any file.
 3. **Never `git commit`, `git push`, or open a pull request unless the user explicitly tells you to
    in this conversation.** "Offer to open a PR" means *ask* — never do it by default.
 4. **Only ever write `.preuser/config.yml`.** Do not touch `.env`, CI workflow files, `package.json`,
    Dockerfiles, or anything else. preuser needs no changes to the user's existing code or workflows.
+5. **No URL-lane keys in config.** Do not write top-level `target`, `target_url`, `url`, `kind`, or
+   anything similar. `.preuser/config.yml` proves PR code by booting that PR in a sandbox; a fixed
+   live URL belongs in the Console.
 
 ## First, tell the user this (the honesty up front)
 
@@ -36,6 +41,8 @@ Before drafting anything, say plainly:
 > The one exception is a **sealed credential**: a value provided via the `sealed:` map (Step 2.5) is
 > substituted into the page only at the browser and is **redacted from the model I/O and the saved
 > bundle** — so a test-account password handled that way does not appear in the captured model log.
+> A value in `up.env` is different: it is plaintext app configuration for the disposable sandbox and
+> is visible in config/receipts, so only use it for throwaway per-run values.
 > The Check preuser posts is **advisory** (it doesn't block your merge) during preview.
 
 ## Step 1 — Understand how the app runs
@@ -44,8 +51,9 @@ Look at the repo to figure out how to bring the app up and what URL it serves on
 `docker-compose.yml` / `compose.yaml`, a `package.json` (scripts), a `Procfile`, a framework
 (Next.js, Rails, Django, etc.). Then draft the `up:` block:
 
-- `url` (**required**): the base URL the app serves on, e.g. `http://localhost:3000`. The agent
-  drives this and uses it as the readiness gate.
+- `url` (**required**): the base URL the app serves on **inside the PR sandbox after preuser starts
+  it**, e.g. `http://localhost:3000`. The agent drives this and uses it as the readiness gate. This is
+  NOT a live/staging URL target.
 - `run`: the long-running serve command, e.g. `npm run start`. **Omit `run` entirely if the app is
   brought up by a compose file** (preuser runs `docker compose up` itself) — including `run` for a
   compose repo is wrong.
@@ -58,6 +66,11 @@ Look at the repo to figure out how to bring the app up and what URL it serves on
   **For compose repos or anything with a cold multi-service build, suggest raising this to at least
   300** — a 120s default routinely times out on first build and produces an `errored` verdict that
   isn't the app's fault.
+- `env` (optional): plaintext app variables for the throwaway PR sandbox. Use this when the app seeds
+  a disposable login from env at boot (e.g. `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`). Each key is
+  also typeable by the agent as `<preuser-secret:KEY>`. **Warn clearly:** `up.env` is committed,
+  visible, and shown in receipts — use only disposable per-run values, never API keys, production
+  credentials, shared passwords, or customer data.
 
 Be honest that you're **guessing** the build/seed/run commands from the repo — present them as a
 draft and ask the user to confirm or correct each before you rely on it.
@@ -86,7 +99,9 @@ later as more list entries.
 
 Most journeys don't need this — skip it entirely if every journey can sign up or browse as a fresh
 visitor. Do this step **only** when a journey requires logging in as an account the agent can't create
-itself (a seeded admin, a pre-existing test user). Then:
+itself (a seeded admin, a pre-existing test user). If the app itself creates that disposable account
+from env at boot, prefer `up.env` from Step 1 instead of sealing the same value twice. Use `sealed:`
+for a repo-bound test credential that must not be visible in git/receipts. Then:
 
 1. **Ask the user ONE question, in plain words** — no crypto vocabulary. For each credential the login
    needs, ask e.g.: *"What's the test-account password the AI user should log in with?"* (and the
@@ -129,14 +144,19 @@ Before showing the final draft, sanity-check it yourself — this is a **heurist
 validator**:
 
 - `up.url` is set and looks like an http(s) URL.
+- there is no top-level `target`, `target_url`, `url`, or `kind`.
 - `up.run` is present **unless** you detected a compose file (then it must be absent).
 - `ready_timeout_s` (if set) is between 1 and 900.
+- any `up.env` keys look like POSIX env names (`[A-Z_][A-Z0-9_]*`), do not start with `PREUSER_`,
+  and every value is acknowledged as disposable/plaintext.
 - every journey has a non-empty `name`, `goal`, and `success`; names are unique; no journey text
   contains a raw secret (and no `goal`/`success` references a sealed name — the login is described in
   human terms only).
 - any `sealed:` entry is a name → a `sealed:v1:…` value (a raw plaintext under `sealed:` is a bug —
   re-run the seal tool from Step 2.5).
-- the file is valid YAML with only the known keys (`up`, `journeys`, `modalities`, `sealed`).
+- the file is valid YAML with only the known top-level keys (`up`, `journeys`, `modalities`,
+  `sealed`), and only known `up` keys (`url`, `run`, `setup`, `seed`, `health`, `ready_timeout_s`,
+  `env`).
 
 Tell the user plainly: **this is a structural pre-check only — "structurally valid" does not mean
 "will pass."** The authoritative validation (the full schema) runs on preuser's side when your PR
@@ -152,7 +172,7 @@ up:
   run: npm run start
   setup: npm ci
   health: /
-  ready_timeout_s: 120
+  ready_timeout_s: 300
 journeys:
   - name: sign-up-and-land
     goal: A new visitor signs up with an email and password and reaches the home screen.
