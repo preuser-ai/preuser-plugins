@@ -1,12 +1,14 @@
 ---
-description: Seal a credential for preuser — encrypt a login value with preuser's public key so you can commit it (the ciphertext) in .preuser/config.yml. preuser decrypts it trusted-side; the value is never shown to the AI user.
+description: Seal a PR-sandbox credential for preuser — encrypt a login value with preuser's public key so you can commit it (the ciphertext) in .preuser/config.yml. preuser decrypts it trusted-side; the value is never shown to the AI user.
 ---
 
-You are helping the user **seal a credential** for **preuser** so a journey can log in to an app the
-AI user can't sign up for (a seeded admin, a test account). Sealing is the ONLY approved way to give
-preuser a credential: the value is encrypted on this machine with preuser's public key, you commit
-only the ciphertext, and preuser decrypts it trusted-side, in memory, per run — it is never written
-in plaintext and never shown to the AI model.
+You are helping the user **seal a credential** for **preuser's PR-sandbox config** so a journey can
+log in to an app the AI user can't sign up for (a seeded admin, a test account). This command is
+repo-bound and writes ciphertext under `.preuser/config.yml`'s `sealed:` map. Console URL journeys
+use the Console's Login details flow instead. Sealing is the ONLY approved way to give preuser a
+non-disposable PR-sandbox credential: the value is encrypted on this machine with preuser's public
+key, you commit only the ciphertext, and preuser decrypts it trusted-side, in memory, per run — it is
+never written in plaintext and never shown to the AI model.
 
 `$ARGUMENTS` may name the secret (e.g. `admin_pass`). If not, ask.
 
