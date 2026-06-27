@@ -1,13 +1,13 @@
 ---
-description: Set up preuser PR-sandbox checks on this repo — interview the user and draft a .preuser/config.yml (app bring-up + natural-language journeys an AI user walks once per PR).
+description: Set up preuser PR checks on this repo — interview the user and draft a .preuser/config.yml (target + natural-language journeys an AI user walks once per PR).
 ---
 
-You are helping the user set up **preuser PR-sandbox checks** on the repository you're currently in.
-preuser can run on a PR sandbox or against a live/staging URL; this command is ONLY for the
-PR-sandbox lane. Its job is to **draft a `.preuser/config.yml`** with them — the app bring-up block
-plus one or more natural-language journeys — and then, only if they say so, open a PR. If the user
-wants to point preuser at an already-running live/staging URL, stop drafting config and send them to
-the preuser Console (`/journeys` or `/run-now`); do not add a `target_url` to `.preuser/config.yml`.
+You are helping the user set up **preuser PR checks** on the repository you're currently in. Its job
+is to **draft a `.preuser/config.yml`** with them — target selection, sandbox bring-up if needed, plus
+one or more natural-language journeys — and then, only if they say so, open a PR. The same config can
+run against a sandbox, a static staging URL, or a dynamic URL published after deployment as a GitHub
+Deployment status. One-off/account-owned live URL journeys still belong in the preuser Console
+(`/journeys` or `/run-now`).
 
 Work conversationally. Draft, show, confirm, then write. Do not rush to a file.
 
@@ -25,10 +25,12 @@ Work conversationally. Draft, show, confirm, then write. Do not rush to a file.
 3. **Never `git commit`, `git push`, or open a pull request unless the user explicitly tells you to
    in this conversation.** "Offer to open a PR" means *ask* — never do it by default.
 4. **Only ever write `.preuser/config.yml`.** Do not touch `.env`, CI workflow files, `package.json`,
-   Dockerfiles, or anything else. preuser needs no changes to the user's existing code or workflows.
-5. **No URL-lane keys in config.** Do not write top-level `target`, `target_url`, `url`, `kind`, or
-   anything similar. `.preuser/config.yml` proves PR code by booting that PR in a sandbox; a fixed
-   live URL belongs in the Console.
+   Dockerfiles, or anything else. For dynamic URL targets, explain the CI/CD requirement but do not
+   edit workflows unless the user starts a separate task for that.
+5. **Use the supported `target:` shape only.** Never write legacy top-level `target_url`, `url`, or
+   `kind`. `up:` is required only for `target.kind: sandbox` (or when `target:` is omitted and the
+   default sandbox target is used). `target.kind: url` and `target.kind: github_deployment` must omit
+   `up:` because the app is already running.
 
 ## First, tell the user this (the honesty up front)
 
@@ -45,17 +47,64 @@ Before drafting anything, say plainly:
 > is visible in config/receipts, so only use it for throwaway per-run values.
 > The Check preuser posts is **advisory** (it doesn't block your merge) during preview.
 
-## Step 1 — Understand how the app runs
+## Step 1 — Choose the PR target
+
+Ask how preuser should reach the app for PR checks:
+
+- **Sandbox (default):** preuser clones the PR commit, starts the app from source, and drives
+  `up.url`. Use this when there is no deployed preview environment or when the user wants the isolated
+  throwaway app instance.
+- **Static URL:** preuser drives the same external staging URL on every PR. Use:
+  ```yaml
+  target:
+    kind: url
+    url: https://staging.example.com
+  ```
+  Omit `up:`. This must be the literal final URL, not CI syntax such as `$PREVIEW_URL` or
+  `${{ steps.deploy.outputs.url }}`.
+- **Dynamic post-deploy URL:** CI/CD deploys each PR/branch and only knows the URL after deployment.
+  Ask which GitHub Deployment environment name the deploy job publishes (for example `preview`,
+  `staging`, or a branch-specific name). If the user is not sure or the deploy system varies the name,
+  omit `environment` so preuser accepts the latest successful deployment for the PR head SHA. Use:
+  ```yaml
+  target:
+    kind: github_deployment
+    environment: preview
+    wait_timeout_s: 900
+  ```
+  Omit `up:`.
+
+For dynamic URLs, be explicit: preuser cannot read another CI job's process env (`PREVIEW_URL`,
+`DEPLOY_URL`, `VERCEL_URL`, etc.) from a GitHub PR webhook. The deploy job must publish the final URL
+after deployment as a successful GitHub Deployment status for the PR head SHA, using
+`environment_url` (or `target_url`). In GitHub Actions, that usually means setting the job's
+`environment.url` from the deploy step/job output. In another CI system, call GitHub's deployment
+status API after deploy. Do not write `url: "$PREVIEW_URL"` into config; it will be treated as a
+literal string and fail validation. Also warn about deadlock: don't make deployment wait on the
+preuser Check while preuser waits on deployment.
+
+If the user chooses sandbox, continue to Step 1A. If they choose `url` or `github_deployment`, skip
+the app bring-up discovery and continue to journeys.
+
+## Step 1A — For sandbox targets, understand how the app runs
 
 Look at the repo to figure out how to bring the app up and what URL it serves on. Check for a
 `docker-compose.yml` / `compose.yaml`, a `package.json` (scripts), a `Procfile`, a framework
-(Next.js, Rails, Django, etc.). Then draft the `up:` block:
+(Next.js, Rails, Django, etc.). Then draft the sandbox `target:`/`up:` block:
+
+```yaml
+target:
+  kind: sandbox
+up:
+  url: http://localhost:3000
+```
 
 - `url` (**required**): the base URL the app serves on **inside the PR sandbox after preuser starts
   it**, e.g. `http://localhost:3000`. The agent drives this and uses it as the readiness gate. This is
   NOT a live/staging URL target. If you detect a public deployed host here (Vercel/Netlify/Render/
-  Railway/Fly/Heroku, GitHub Pages, staging/prod domains, or any other internet hostname), stop and
-  send the user to the Console unless they can explain why that host only exists inside the sandbox.
+  Railway/Fly/Heroku, GitHub Pages, staging/prod domains, or any other internet hostname), switch to
+  `target.kind: url` for a fixed host or `target.kind: github_deployment` for a per-deploy host unless
+  the user can explain why that host only exists inside the sandbox.
 - `run`: the long-running serve command, e.g. `npm run start`. **Omit `run` entirely if the app is
   brought up by a compose file** (preuser runs `docker compose up` itself) — including `run` for a
   compose repo is wrong.
@@ -101,9 +150,11 @@ later as more list entries.
 
 Most journeys don't need this — skip it entirely if every journey can sign up or browse as a fresh
 visitor. Do this step **only** when a journey requires logging in as an account the agent can't create
-itself (a seeded admin, a pre-existing test user). If the app itself creates that disposable account
-from env at boot, prefer `up.env` from Step 1 instead of sealing the same value twice. Use `sealed:`
-for a repo-bound test credential that must not be visible in git/receipts. Then:
+itself (a seeded admin, a pre-existing test user). If the selected target is **sandbox** and the app
+itself creates that disposable account from env at boot, prefer `up.env` from Step 1A instead of
+sealing the same value twice. For `url` or `github_deployment` targets, there is no `up.env` block;
+use `sealed:` for PR-config credentials that must not be visible in git/receipts, or use the Console's
+Login details flow for one-off Console URL journeys. Then:
 
 1. **Ask the user ONE question, in plain words** — no crypto vocabulary. For each credential the login
    needs, ask e.g.: *"What's the test-account password the AI user should log in with?"* (and the
@@ -145,22 +196,28 @@ for a repo-bound test credential that must not be visible in git/receipts. Then:
 Before showing the final draft, sanity-check it yourself — this is a **heuristic check, not the real
 validator**:
 
-- `up.url` is set, looks like an http(s) URL, and points at a sandbox/local host rather than a public
-  live/staging deployment.
-- there is no top-level `target`, `target_url`, `url`, or `kind`, and no nested URL-lane keys under
-  `up:` such as `up.target`, `up.target_url`, or `up.kind`.
-- `up.run` is present **unless** you detected a compose file (then it must be absent).
-- `ready_timeout_s` (if set) is between 1 and 900.
-- any `up.env` keys look like POSIX env names (`[A-Z_][A-Z0-9_]*`), do not start with `PREUSER_`,
-  and every value is acknowledged as disposable/plaintext.
+- the top-level keys are only `target`, `up`, `journeys`, `modalities`, and `sealed`; there is no
+  legacy top-level `target_url`, `url`, or `kind`.
+- `target.kind` is absent/`sandbox`, `url`, or `github_deployment`.
+- for sandbox targets: `up:` exists; `up.url` is set, looks like an http(s) URL, and points at a
+  sandbox/local host rather than a public live/staging deployment; `up.run` is present **unless** you
+  detected a compose file (then it must be absent); `ready_timeout_s` (if set) is between 1 and 900;
+  any `up.env` keys look like POSIX env names (`[A-Z_][A-Z0-9_]*`), do not start with `PREUSER_`, and
+  every value is acknowledged as disposable/plaintext.
+- for `target.kind: url`: `target.url` starts with `http://` or `https://`, is a public/staging URL
+  rather than localhost/internal metadata, contains no CI placeholder syntax (`$`, `${{ ... }}`, or
+  similar), and `up:` is absent.
+- for `target.kind: github_deployment`: `up:` is absent; `environment` (if set) is non-empty;
+  `wait_timeout_s` (if set) is between 0 and 3600; `poll_interval_s` (if set) is between 1 and 60;
+  the user understands their deploy job must publish a successful GitHub Deployment status with
+  `environment_url`/`target_url` after deployment.
 - every journey has a non-empty `name`, `goal`, and `success`; names are unique; no journey text
   contains a raw secret (and no `goal`/`success` references a sealed name — the login is described in
   human terms only).
 - any `sealed:` entry is a name → a `sealed:v1:…` value (a raw plaintext under `sealed:` is a bug —
   re-run the seal tool from Step 2.5).
-- the file is valid YAML with only the known top-level keys (`up`, `journeys`, `modalities`,
-  `sealed`), and only known `up` keys (`url`, `run`, `setup`, `seed`, `health`, `ready_timeout_s`,
-  `env`).
+- the file is valid YAML with only known `target` keys for the selected kind, and only known `up` keys
+  (`url`, `run`, `setup`, `seed`, `health`, `ready_timeout_s`, `env`) when `up:` is present.
 
 Tell the user plainly: **this is a structural pre-check only — "structurally valid" does not mean
 "will pass."** The authoritative validation (the full schema) runs on preuser's side when your PR
@@ -171,12 +228,27 @@ opens; if anything's off, preuser posts a visible config-error receipt on the PR
 Show the COMPLETE `.preuser/config.yml`. Example shape (yours will differ):
 
 ```yaml
+target:
+  kind: sandbox
 up:
   url: http://localhost:3000
   run: npm run start
   setup: npm ci
   health: /
   ready_timeout_s: 300
+journeys:
+  - name: sign-up-and-land
+    goal: A new visitor signs up with an email and password and reaches the home screen.
+    success: The home screen shows the signed-in user's email and a Log out link.
+```
+
+For a post-deploy URL target, the shape omits `up:`:
+
+```yaml
+target:
+  kind: github_deployment
+  environment: preview
+  wait_timeout_s: 900
 journeys:
   - name: sign-up-and-land
     goal: A new visitor signs up with an email and password and reaches the home screen.
