@@ -11,10 +11,17 @@ doesn't exist, tell the user to run `/preuser:setup` first.
 
 Check and report any problems:
 
-- There are no URL-lane top-level keys such as `target`, `target_url`, `url`, or `kind`; flag them
-  and tell the user to create live URL journeys in the Console instead.
+- There are no URL-lane keys such as `target`, `target_url`, `url`, or `kind` at the top level; flag
+  them and tell the user to create live URL journeys in the Console instead.
+- There are no URL-lane keys nested under `up:` either. `up.target`, `up.target_url`, `up.kind`, or
+  similar fields are wrong; the only allowed `up:` keys are `url`, `run`, `setup`, `seed`, `health`,
+  `ready_timeout_s`, and `env`.
 - **`up.url`** is present and looks like an `http(s)://` URL. It is the sandbox-internal URL after
-  preuser starts the PR app, not a live/staging target.
+  preuser starts the PR app, not a live/staging target. Prefer `localhost`, `127.0.0.1`, `[::1]`, or a
+  clearly sandbox-internal service host. If `up.url` points at a public deployed host (for example a
+  staging/prod domain, Vercel/Netlify/Render/Railway/Fly/Heroku URL, GitHub Pages, or any other
+  internet hostname), flag it as likely URL-lane config that belongs in the Console unless the user can
+  explain why that host only exists inside the PR sandbox.
 - **`up.run`** is present **unless** the repo has a compose file (`docker-compose.yml` /
   `compose.yaml` / `compose.yml`) — for a compose repo, `run` should be **absent** (preuser runs
   `docker compose up` itself).
@@ -36,7 +43,8 @@ Check and report any problems:
   multi-step "and then …" sequence). If a `success` looks un-gradeable, point it out and suggest a
   fix (see `/preuser:setup` for the rules).
 - The file is valid YAML with only the known top-level keys: `up`, `journeys`, `modalities`,
-  `sealed`. (`secrets:` is no longer a field — flag it and tell the user to move the value to `sealed:`
+  `sealed`; and only known `up:` keys: `url`, `run`, `setup`, `seed`, `health`, `ready_timeout_s`,
+  `env`. (`secrets:` is no longer a field — flag it and tell the user to move the value to `sealed:`
   via `/preuser:setup`.)
 
 End with the honest caveat: **a clean heuristic check does not mean the run will pass** — it means

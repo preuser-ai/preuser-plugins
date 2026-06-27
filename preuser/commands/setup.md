@@ -53,7 +53,9 @@ Look at the repo to figure out how to bring the app up and what URL it serves on
 
 - `url` (**required**): the base URL the app serves on **inside the PR sandbox after preuser starts
   it**, e.g. `http://localhost:3000`. The agent drives this and uses it as the readiness gate. This is
-  NOT a live/staging URL target.
+  NOT a live/staging URL target. If you detect a public deployed host here (Vercel/Netlify/Render/
+  Railway/Fly/Heroku, GitHub Pages, staging/prod domains, or any other internet hostname), stop and
+  send the user to the Console unless they can explain why that host only exists inside the sandbox.
 - `run`: the long-running serve command, e.g. `npm run start`. **Omit `run` entirely if the app is
   brought up by a compose file** (preuser runs `docker compose up` itself) — including `run` for a
   compose repo is wrong.
@@ -143,8 +145,10 @@ for a repo-bound test credential that must not be visible in git/receipts. Then:
 Before showing the final draft, sanity-check it yourself — this is a **heuristic check, not the real
 validator**:
 
-- `up.url` is set and looks like an http(s) URL.
-- there is no top-level `target`, `target_url`, `url`, or `kind`.
+- `up.url` is set, looks like an http(s) URL, and points at a sandbox/local host rather than a public
+  live/staging deployment.
+- there is no top-level `target`, `target_url`, `url`, or `kind`, and no nested URL-lane keys under
+  `up:` such as `up.target`, `up.target_url`, or `up.kind`.
 - `up.run` is present **unless** you detected a compose file (then it must be absent).
 - `ready_timeout_s` (if set) is between 1 and 900.
 - any `up.env` keys look like POSIX env names (`[A-Z_][A-Z0-9_]*`), do not start with `PREUSER_`,
