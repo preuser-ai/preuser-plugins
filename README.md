@@ -45,15 +45,20 @@ journeys:
 
 For Docker Compose repos, omit `up.run`; preuser detects the compose file and runs the stack. Use `up.env` only for disposable app variables, such as a per-run seeded login. `up.env` is plaintext and visible in receipts.
 
-The easy smoke path is the runner image, which exercises the same app bring-up contract without running the AI user or producing a hosted verdict:
+The easy smoke path is the runner image, which exercises the same app bring-up contract without running the AI user or producing a hosted verdict. It executes your repo's setup/seed/run or compose code, so the setup agent should offer it and wait for explicit approval before running it. For unfamiliar code, run it in a disposable dev VM or CI job.
+
+For direct-run apps:
 
 ```bash
-docker run --rm --privileged \
+docker run --rm -p 3000:3000 \
   -v "$PWD:/workspace" \
   -e PREUSER_UP_URL=http://localhost:3000 \
   -e PREUSER_UP_HEALTH=/ \
+  -e PREUSER_UP_RUN='npm run start -- --host 0.0.0.0' \
   ghcr.io/preuser-ai/preuser-runner-smoke:latest
 ```
+
+Add `PREUSER_UP_SETUP` and `PREUSER_UP_SEED` when your `up:` block uses them. For compose repos, omit `PREUSER_UP_RUN`; the smoke image detects the compose file and needs `--privileged` for its in-container Docker daemon.
 
 If the public image pull fails, fall back to the local check: run the same setup/seed/run or compose command and `curl` `up.url + up.health` before opening the PR. The first full preuser receipt still comes from the hosted PR run after the config is on the default branch.
 
@@ -117,7 +122,7 @@ The full config reference lives at **<https://preuser.ai/get-started>**. That pa
 
 The first-party feedback loop is the PR Check/comment plus the preuser run page. The run page shows live status while running and, when finalized, the video, timeline, screenshots, verdict result, and private Debug logs when worker/sandbox logs were captured.
 
-`/preuser:rescue` inspects your config, classifies likely failures, and asks for the PR URL or run page URL when needed. For bring-up failures, open the run page as an authorized viewer and check the Debug logs card if it appears; otherwise keep the run page URL/run id, PR URL, commit SHA, and the relevant `.preuser/config.yml` snippet for support.
+`/preuser:rescue` inspects your config, classifies likely failures, and asks for the PR URL or run page URL when needed. Local smoke logs are the Docker terminal output. For hosted bring-up failures, open the run page as an authorized viewer and check the Debug logs card if it appears; otherwise keep the run page URL/run id, PR URL, commit SHA, and the relevant `.preuser/config.yml` snippet for support.
 
 ## Heads Up (Preview)
 

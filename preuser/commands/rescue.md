@@ -56,11 +56,14 @@ Use the evidence to put the issue in exactly one primary bucket, then list secon
    Inspect `up.url`, `up.health`, `up.run`, `setup`, `seed`, compose presence, and `ready_timeout_s`.
    Common fixes: app binds `0.0.0.0` not only `127.0.0.1`; compose repos omit `up.run`; slow cold
    compose builds use `ready_timeout_s: 300` or higher; `up.env` contains every disposable boot var
-   the app needs. Offer the runner smoke image first, filling in the config's URL and health:
-   `docker run --rm --privileged -v "$PWD:/workspace" -e PREUSER_UP_URL=<up.url> -e
-   PREUSER_UP_HEALTH=<up.health-or-/> ghcr.io/preuser-ai/preuser-runner-smoke:latest`. If the
-   public image pull fails, fall back to running the same setup/seed/run or compose command and
-   curling `up.url + health`. Say clearly this is not a hosted preuser verdict.
+   the app needs. Offer the runner smoke image first, but get explicit approval because it executes
+   the repo's setup/seed/run or compose code locally. For direct-run apps, fill in `PREUSER_UP_URL`,
+   `PREUSER_UP_HEALTH`, optional `PREUSER_UP_SETUP`/`PREUSER_UP_SEED`, and required
+   `PREUSER_UP_RUN`, and do not use `--privileged`. For compose repos, omit `PREUSER_UP_RUN`; the
+   runner detects compose and needs `--privileged` for its in-container Docker daemon, so recommend a
+   disposable dev VM/CI job for unfamiliar code. If the public image pull fails, fall back to running
+   the same setup/seed/run or compose command and curling `up.url + health`. Say clearly this is not
+   a hosted preuser verdict. Local smoke logs are the Docker terminal output.
 
 4. **External target reachability/auth failed.**
    For `target.kind: url`, confirm `target.url` is literal public HTTP(S), not localhost/private/
@@ -104,9 +107,10 @@ Use these in order:
 4. For support/escalation: collect the run page URL or run id, PR URL, commit SHA, target kind, and
    the relevant config snippet.
 
-The plugin itself does not fetch cluster logs. Use the run page's Debug logs card when it appears.
-If it does not appear, collect the run page URL or run id, PR URL, commit SHA, target kind, and the
-relevant config snippet for support.
+The plugin itself does not fetch cluster logs or talk to Kubernetes. Use the run page's Debug logs
+card when it appears; those are the first-party hosted sandbox/worker logs captured as private run
+artifacts. If it does not appear, collect the run page URL or run id, PR URL, commit SHA, target
+kind, and the relevant config snippet for support.
 
 ## End state
 
