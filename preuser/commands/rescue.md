@@ -58,9 +58,9 @@ Use the evidence to put the issue in exactly one primary bucket, then list secon
    compose builds use `ready_timeout_s: 300` or higher; `up.env` contains every disposable boot var
    the app needs. Offer the runner smoke image first, filling in the config's URL and health:
    `docker run --rm --privileged -v "$PWD:/workspace" -e PREUSER_UP_URL=<up.url> -e
-   PREUSER_UP_HEALTH=<up.health-or-/> ghcr.io/preuser-ai/preuser-runner-smoke:latest`. If GHCR denies the
-   pull during preview, fall back to running the same setup/seed/run or compose command and curling
-   `up.url + health`. Say clearly this is not a hosted preuser verdict.
+   PREUSER_UP_HEALTH=<up.health-or-/> ghcr.io/preuser-ai/preuser-runner-smoke:latest`. If the
+   public image pull fails, fall back to running the same setup/seed/run or compose command and
+   curling `up.url + health`. Say clearly this is not a hosted preuser verdict.
 
 4. **External target reachability/auth failed.**
    For `target.kind: url`, confirm `target.url` is literal public HTTP(S), not localhost/private/
