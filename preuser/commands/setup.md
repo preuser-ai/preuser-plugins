@@ -1,5 +1,5 @@
 ---
-description: Set up preuser PR checks on this repo — interview the user and draft a .preuser/config.yml (target + natural-language journeys an AI user walks once per PR).
+description: Set up preuser PR checks on this repo — choose sandbox bring-up or a deployed target, then draft .preuser/config.yml with natural-language journeys.
 ---
 
 You are helping the user set up **preuser PR checks** on the repository you're currently in. Its job
@@ -19,7 +19,11 @@ Work conversationally. Draft, show, confirm, then write. Do not rush to a file.
    **SEALED value in the `sealed:` map**, produced by running the committed seal tool (Step 2.5 below).
    The one exception is `up.env` for **disposable, throwaway app variables** that intentionally boot a
    per-run test account; `up.env` is plaintext and visible by contract, so never put a real secret
-   there. There is no `secrets:` field anymore; if you see one in an old config, it's gone.
+   there. The supported pre-app access gates in PR config are `target.auth.basic`,
+   `target.auth.cookies`, and `target.auth.headers`, and those values must reference top-level
+   `sealed:` names. There is no `secrets:`, `up.sealed_env`, `browser_auth`, top-level/global
+   `headers`, raw bearer-token, or raw service-token field in `.preuser/config.yml`; if you see one
+   in an old or imagined config, it is not supported.
 2. **Draft-then-confirm.** Show the user the COMPLETE proposed `.preuser/config.yml` and get their
    explicit "yes, write it" before you create or modify any file.
 3. **Never `git commit`, `git push`, or open a pull request unless the user explicitly tells you to
@@ -36,13 +40,13 @@ Work conversationally. Draft, show, confirm, then write. Do not rush to a file.
 
 Before drafting anything, say plainly:
 
-> ⚠️ **What preuser captures.** When preuser runs, it records the AI user's full screen (a video) and
+> **What preuser captures.** When preuser runs, it records the AI user's full screen (a video) and
 > the model's inputs/outputs — that's the receipt that lets you trust the verdict. So: **don't put
 > tokens, real personal data, or anything you wouldn't want on screen into a journey's `goal` or
 > `success` text**, and assume anything the agent sees on screen during a run is in the recording.
-> The one exception is a **sealed credential**: a value provided via the `sealed:` map (Step 2.5) is
-> substituted into the page only at the browser and is **redacted from the model I/O and the saved
-> bundle** — so a test-account password handled that way does not appear in the captured model log.
+> A **sealed credential** is safer than plaintext config: the model only gets a placeholder name and
+> the real value is substituted at the browser boundary. Still use a disposable test account, because
+> anything the target app visibly renders can be recorded as pixels.
 > A value in `up.env` is different: it is plaintext app configuration for the disposable sandbox and
 > is visible in config/receipts, so only use it for throwaway per-run values.
 > The Check preuser posts is **advisory** (it doesn't block your merge) during preview.
@@ -86,6 +90,55 @@ preuser Check while preuser waits on deployment.
 If the user chooses sandbox, continue to Step 1A. If they choose `url` or `github_deployment`, skip
 the app bring-up discovery and continue to journeys.
 
+For `url` and `github_deployment`, ask one reachability/auth question before moving on:
+
+- "Can preuser's hosted worker reach this URL over public HTTP(S) without VPN, internal DNS, IP
+  allowlists, localhost/private IPs, or a pre-app auth gate that is not HTTP Basic, cookies, or
+  same-origin request headers?"
+
+If the answer is no, stop and explain the current choices:
+
+- expose a disposable public preview/staging route and use in-app login via `sealed:` if needed;
+- use `target.auth.basic`, `target.auth.cookies`, or `target.auth.headers` when the preview gate
+  accepts HTTP Basic auth, a cookie, or a same-origin request header, with every value referenced from
+  top-level `sealed:`;
+- use the preuser Console for a one-off URL run when pasted browser login state fits the problem;
+- expose a disposable public preview/staging route if the gate needs VPN, private IP allowlists, or
+  another network condition preuser cannot satisfy.
+
+Do not invent `browser_auth`, top-level/global `headers`, `service_token`, credentials in
+`target.url`, or any other unsupported config field. Header auth belongs only under
+`target.auth.headers`, with sealed values.
+
+If they choose HTTP Basic auth, a cookie gate, or a same-origin header gate, draft the supported shape
+and seal each referenced value in Step 2.5:
+
+```yaml
+target:
+  kind: url
+  url: https://staging.example.com
+  auth:
+    basic:
+      username_secret: preview_user
+      password_secret: preview_pass
+    cookies:
+      - name: preview_token
+        value_secret: preview_cookie
+    headers:
+      - name: Authorization
+        value_secret: preview_authorization
+sealed:
+  preview_user: "sealed:v1:…"
+  preview_pass: "sealed:v1:…"
+  preview_cookie: "sealed:v1:…"
+  preview_authorization: "sealed:v1:…"
+```
+
+For `github_deployment`, put the same `auth:` block under `target:` next to `environment` /
+`wait_timeout_s`. Never put the raw username, password, cookie value, or header value in the YAML.
+For `Authorization: Bearer ...`, seal the complete `Bearer ...` header value, not just the opaque
+token.
+
 ## Step 1A — For sandbox targets, understand how the app runs
 
 Look at the repo to figure out how to bring the app up and what URL it serves on. Check for a
@@ -126,6 +179,33 @@ up:
 Be honest that you're **guessing** the build/seed/run commands from the repo — present them as a
 draft and ask the user to confirm or correct each before you rely on it.
 
+### Easy sandbox smoke path
+
+Offer a local smoke test for the inferred `up:` block, but do not run long or stateful commands
+without explicit user approval:
+
+1. For compose repos: run the compose stack the repo already defines, make sure the public service
+   binds to `0.0.0.0` on `up.url`'s port, then curl `up.url + health`.
+2. For direct-run repos: run `setup`, then `seed` if present, then start `run`; in another shell, curl
+   `up.url + health`.
+3. Report only "the local smoke reached the health URL" or the concrete local error. This is not a
+   preuser verdict and does not exercise the hosted Kata sandbox, but it catches wrong ports, missing
+   env, and bad health paths before the first PR run.
+
+If they want the closest first-party smoke without waiting for a PR run, offer the runner image. Fill
+in `PREUSER_UP_URL` and `PREUSER_UP_HEALTH` from the draft:
+
+```bash
+docker run --rm --privileged \
+  -v "$PWD:/workspace" \
+  -e PREUSER_UP_URL=http://localhost:3000 \
+  -e PREUSER_UP_HEALTH=/ \
+  ghcr.io/preuser-ai/preuser-runner-smoke:latest
+```
+
+If GHCR denies the pull during preview, fall back to the manual local smoke above. The hosted PR run
+is still the first full-fidelity preuser test with the AI user, sandbox isolation, and video receipt.
+
 ## Step 2 — Teach what makes a *gradeable* journey (this is the part that decides success)
 
 A journey is one `goal` + one `success`, both plain English. The single thing that makes or breaks a
@@ -154,23 +234,31 @@ itself (a seeded admin, a pre-existing test user). If the selected target is **s
 itself creates that disposable account from env at boot, prefer `up.env` from Step 1A instead of
 sealing the same value twice. For `url` or `github_deployment` targets, there is no `up.env` block;
 use `sealed:` for PR-config credentials that must not be visible in git/receipts, or use the Console's
-Login details flow for one-off Console URL journeys. Then:
+Login details flow for one-off Console URL journeys. Sealed values help the AI user type into the app;
+they do not unlock a network/auth gate that blocks the page before the UI loads unless you wire them
+through `target.auth.basic`, `target.auth.cookies`, or `target.auth.headers` for an external target.
+Then:
 
-1. **Ask the user ONE question, in plain words** — no crypto vocabulary. For each credential the login
-   needs, ask e.g.: *"What's the test-account password the AI user should log in with?"* (and the
-   username/email if that's not already a fixed value you can put in the `goal`). The plaintext stays
-   on their machine — say so. Pick a short snake_case name for each value, e.g. `admin_pass`,
-   `admin_user`.
+1. **Identify what credential fields are needed, without asking the user to paste values into chat.**
+   Ask which fields the login needs (for example, email and password) and pick a short snake_case name
+   for each value, e.g. `admin_pass`, `admin_user`. Say plainly: *"Don't paste the secret here; we'll
+   seal it through a hidden terminal prompt or you can run the command yourself."*
 2. **Confirm the repo the value binds to.** It's sealed to the **base / default-branch repo**
    (`owner/name`) — the repo preuser reads the config from. If you're in a **fork**, ask which repo
    that is (the upstream they open PRs against), and use that `owner/name`, not the fork's.
-3. **Run the committed seal tool** — never build the ciphertext yourself. For each value, pipe the
-   plaintext on stdin (so it never lands in argv / shell history) and capture the `sealed:v1:…` line it
-   prints:
+3. **Run the committed seal tool** — never build the ciphertext yourself. Prefer a hidden terminal
+   prompt so the value never lands in chat, argv, or shell history:
 
    ```
-   printf %s "<the value the user gave you>" | python -m preuser.credential.seal --repo <owner/name> --name <secret_name>
+   read -rsp "Value for <secret_name>: " PREUSER_SEAL_VALUE
+   printf '\n' >&2
+   printf %s "$PREUSER_SEAL_VALUE" | python -m preuser.credential.seal --repo <owner/name> --name <secret_name>
+   unset PREUSER_SEAL_VALUE
    ```
+
+   If you cannot safely take hidden terminal input in this environment, give the user the command
+   above with the real repo/name filled in and ask them to run it locally, then paste back only the
+   printed `sealed:v1:…` line.
 
    It prints one line: `sealed:v1:<base64>`. (If it warns about sealing to the "pinned default
    recipient," that's expected during preview — keep the printed value.)
@@ -206,11 +294,18 @@ validator**:
   every value is acknowledged as disposable/plaintext.
 - for `target.kind: url`: `target.url` starts with `http://` or `https://`, is a public/staging URL
   rather than localhost/internal metadata, contains no CI placeholder syntax (`$`, `${{ ... }}`, or
-  similar), and `up:` is absent.
+  similar), contains no embedded username/password, and `up:` is absent.
 - for `target.kind: github_deployment`: `up:` is absent; `environment` (if set) is non-empty;
   `wait_timeout_s` (if set) is between 0 and 3600; `poll_interval_s` (if set) is between 1 and 60;
   the user understands their deploy job must publish a successful GitHub Deployment status with
-  `environment_url`/`target_url` after deployment.
+  `environment_url`/`target_url` after deployment; the deployed URL must be publicly reachable from
+  preuser.
+- if an external target uses `target.auth`, it is only `basic`, `cookies`, and/or `headers`; every
+  referenced secret name exists in top-level `sealed:`; and no auth-only sealed name is reused as a
+  journey login unless the user explicitly wants the AI user to type the same disposable value in the
+  app UI.
+- no unsupported auth/reachability fields are present (`browser_auth`, top-level/global `headers`,
+  `service_token`, `http_credentials`, raw bearer tokens, `up.sealed_env`, etc.).
 - every journey has a non-empty `name`, `goal`, and `success`; names are unique; no journey text
   contains a raw secret (and no `goal`/`success` references a sealed name — the login is described in
   human terms only).
@@ -265,8 +360,15 @@ Once written, tell them what's left to actually get a run — and let THEM choos
    Note honestly: preuser is in **preview** with a fail-closed repo allowlist, so if their repo isn't
    approved yet, installing won't run anything until it's allowlisted — point them to request access
    at https://preuser.ai/get-started.
-2. **Offer** to commit `.preuser/config.yml` on a branch and open a PR — only if they say yes.
-3. The first PR triggers the first run; the verdict + video land as a PR comment.
+2. **Offer** to commit `.preuser/config.yml` on a branch and open an activation PR — only if they say
+   yes. Be clear: preuser reads `.preuser/config.yml` from the repo's default branch, so a PR that
+   first adds or changes the config will not use that unmerged config for its own run.
+3. After the config is on the default branch, the next eligible PR triggers the hosted run; the
+   verdict + video land as a PR comment. If a PR was already open, rerun/push after the config lands.
+
+If the target is `github_deployment`, add: the run waits for the deploy job's successful GitHub
+Deployment URL first. If it times out, rerun preuser after the deployment status exists or increase
+`wait_timeout_s`.
 
 For the full config reference (every field, optional ones, the modality defaults), point them to the
 docs at **https://preuser.ai/get-started** rather than restating it here — the docs are the source of

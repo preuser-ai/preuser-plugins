@@ -32,12 +32,26 @@ Check and report any problems:
   `<preuser-secret:KEY>`.
 - For `target.kind: url`: `target.url` starts with `http://` or `https://`, is not localhost,
   loopback, link-local, metadata, or another obvious internal-only host; contains no CI placeholder
-  syntax (`$`, `${{ ... }}`, or similar); and `up:` is absent.
+  syntax (`$`, `${{ ... }}`, or similar); contains no embedded username/password; and `up:` is absent.
 - For `target.kind: github_deployment`: `up:` is absent; `environment` (if set) is a non-empty string;
   `wait_timeout_s` (if set) is an integer from 0 to 3600; `poll_interval_s` (if set) is an integer
   from 1 to 60. Remind the user that CI/CD must publish a successful GitHub Deployment status with
   `environment_url` or `target_url` after deployment; CI env syntax such as `$PREVIEW_URL` does not
-  get expanded inside `.preuser/config.yml`.
+  get expanded inside `.preuser/config.yml`; and the final URL must be reachable from preuser's hosted
+  worker over public HTTP(S).
+- For external URL targets, `target.auth` is optional and may contain only:
+  - `basic.username_secret` + `basic.password_secret`, each naming a top-level `sealed:` entry;
+  - `cookies`, a list of `{name, value_secret}`, where `name` is a simple cookie name and
+    `value_secret` names a top-level `sealed:` entry;
+  - `headers`, a list of `{name, value_secret}`, where `name` is a simple non-hop-by-hop request
+    header name and `value_secret` names a top-level `sealed:` entry.
+  Flag missing sealed references. Explain that these values are injected as browser context auth and
+  are not typed by the AI user unless separately referenced by a journey.
+- For external URL targets, flag unsupported network/auth fields such as `browser_auth`, top-level
+  or global `headers`, `service_token`, `http_credentials`, `up.sealed_env`, raw bearer tokens, or
+  credentials embedded in the URL. Explain that PR config supports Basic/cookie/header target auth
+  and in-app typed credentials through `sealed:`, but does not provide VPN access or private
+  allowlists.
 - **`journeys`** is a non-empty list; each journey has a non-empty `name` (≤80 chars), `goal`, and
   `success`; journey `name`s are unique.
 - **No RAW real secrets** (tokens, API keys, production passwords) appear anywhere in the file —
@@ -51,6 +65,15 @@ Check and report any problems:
 - The file is valid YAML with only known target keys for the selected kind; and only known `up:` keys:
   `url`, `run`, `setup`, `seed`, `health`, `ready_timeout_s`, `env`. (`secrets:` is no longer a
   field — flag it and tell the user to move the value to `sealed:` via `/preuser:setup`.)
+
+If the target is sandbox, also suggest a local smoke test when the bring-up fields look plausible:
+run the same setup/seed/run or compose command locally and curl `up.url + health`. Be explicit that
+this only catches local bring-up mistakes; the authoritative run still happens in preuser's hosted
+sandbox.
+
+Mention the default-branch invariant when relevant: preuser reads `.preuser/config.yml` from the
+repo's default branch, so an unmerged PR that changes only this config is an activation PR, not proof
+that the changed config has already run.
 
 End with the honest caveat: **a clean heuristic check does not mean the run will pass** — it means
 the config is structurally plausible. The real schema validation happens when your PR opens, and a
