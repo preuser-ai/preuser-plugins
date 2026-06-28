@@ -39,8 +39,11 @@ support accurate.
 - `/preuser:setup` must make app auth explicit: fresh signup, sandbox-seeded disposable login,
   sealed existing test account, or supported external `target.auth`.
 - `/preuser:setup` must draft, show, and receive explicit confirmation before writing.
-- `/preuser:setup` writes only `.preuser/config.yml`; it must not edit CI, env files, package files,
-  Dockerfiles, commit, push, or open a PR unless the user separately asks.
+- `/preuser:setup` writes only `.preuser/config.yml` by default. With explicit user approval, it may
+  add/update a short `CLAUDE.md`/`AGENTS.md` note that tells future agents to keep preuser journeys
+  aligned as the product surface changes.
+- `/preuser:setup` must not edit CI, env files, package files, Dockerfiles, commit, push, or open a
+  PR unless the user separately asks.
 - External target pre-app auth supports only `target.auth.basic`, `target.auth.cookies`, and
   `target.auth.headers`, with values referenced from `sealed:`.
 - Do not invent unsupported config fields such as `secrets`, `browser_auth`, global headers,

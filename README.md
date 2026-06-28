@@ -19,7 +19,7 @@ This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It h
 
 ## Commands
 
-- **`/preuser:setup`**: interviews you, chooses the right PR target, works out any login path preuser needs, drafts `.preuser/config.yml`, and offers next steps. Draft-then-confirm; it writes only `.preuser/config.yml` and never commits, pushes, or opens a PR without your say-so.
+- **`/preuser:setup`**: interviews you, chooses the right PR target, works out any login path preuser needs, drafts `.preuser/config.yml`, and offers next steps, including an optional repo-agent note so future agents keep journeys aligned as the product changes. Draft-then-confirm; it never commits, pushes, or opens a PR without your say-so.
 - **`/preuser:validate`**: a quick heuristic pre-check of an existing `.preuser/config.yml`. Structural only; authoritative validation runs on preuser's side when your PR opens.
 - **`/preuser:seal NAME`**: encrypts a test-account login value for the top-level `sealed:` map so the repo commits only `sealed:v1:...` ciphertext.
 - **`/preuser:rescue`**: triages a config or run that did not behave as expected, using the local config, PR Check/comment, and run page evidence.
