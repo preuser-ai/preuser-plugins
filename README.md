@@ -4,7 +4,7 @@ The [Claude Code](https://claude.com/claude-code) plugin marketplace for **[preu
 
 preuser is useful beyond a binary check: the receipt can show where the AI user hit friction, and the journeys you define become a repeatable baseline for noticing workflow drift as the product changes.
 
-This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It helps your coding agent draft and triage `.preuser/config.yml`; it does not run preuser locally or push anything without confirmation. One-off live URL journeys still live in the preuser Console (`/journeys` or `/run-now`).
+This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It helps your coding agent set up and triage `.preuser/config.yml`; it does not run preuser locally or push anything without confirmation. One-off live URL journeys still live in the preuser Console (`/journeys` or `/run-now`).
 
 ## Install (Claude Code)
 
@@ -19,7 +19,7 @@ This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It h
 
 ## Commands
 
-- **`/preuser:setup`**: interviews you, chooses the right PR target, works out any login path preuser needs, drafts `.preuser/config.yml`, and offers next steps. Draft-then-confirm; it writes only `.preuser/config.yml` and never commits, pushes, or opens a PR without your say-so.
+- **`/preuser:setup`**: inspects the repo, chooses the right PR target with you, works out launch/auth logistics, writes `.preuser/config.yml`, and offers next steps, including an optional repo-agent note so future agents keep journeys aligned as the product changes. It never commits, pushes, runs local smoke commands, or opens a PR without your say-so.
 - **`/preuser:validate`**: a quick heuristic pre-check of an existing `.preuser/config.yml`. Structural only; authoritative validation runs on preuser's side when your PR opens.
 - **`/preuser:seal NAME`**: encrypts a test-account login value for the top-level `sealed:` map so the repo commits only `sealed:v1:...` ciphertext.
 - **`/preuser:rescue`**: triages a config or run that did not behave as expected, using the local config, PR Check/comment, and run page evidence.
@@ -45,7 +45,7 @@ journeys:
     success: The home screen shows the signed-in user's email.
 ```
 
-For Docker Compose repos, omit `up.run`; preuser detects the compose file and runs the stack. Use `up.env` only for disposable app variables, such as a per-run seeded login. `up.env` is plaintext and visible in receipts.
+For Docker Compose repos, omit `up.run`; preuser detects the compose file and runs the stack. Use `up.env` for disposable app variables needed to stand the app up in isolation, such as safe defaults from `.env.example` or a per-run seeded login. `up.env` is plaintext and visible in receipts, so do not put real secrets there.
 
 The easy smoke path is the runner image, which exercises the same app bring-up contract without running the AI user or producing a hosted verdict. It executes your repo's setup/seed/run or compose code, so the setup agent should offer it and wait for explicit approval before running it. For unfamiliar code, run it in a disposable dev VM or CI job.
 

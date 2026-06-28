@@ -9,7 +9,7 @@ preuser, not the preuser product/control-plane repo. Keep it small: user-facing 
 
 One marketplace plugin: `preuser`.
 
-- `/preuser:setup` drafts `.preuser/config.yml` for repo PR checks.
+- `/preuser:setup` creates or updates `.preuser/config.yml` for repo PR checks.
 - `/preuser:validate` performs a heuristic local config pre-check.
 - `/preuser:seal NAME` helps the user create a repo-bound `sealed:v1:...` credential value.
 - `/preuser:rescue` triages config, deployment handoff, reachability, auth, and run evidence.
@@ -38,9 +38,14 @@ support accurate.
   probing or journey drafting.
 - `/preuser:setup` must make app auth explicit: fresh signup, sandbox-seeded disposable login,
   sealed existing test account, or supported external `target.auth`.
-- `/preuser:setup` must draft, show, and receive explicit confirmation before writing.
-- `/preuser:setup` writes only `.preuser/config.yml`; it must not edit CI, env files, package files,
-  Dockerfiles, commit, push, or open a PR unless the user separately asks.
+- `/preuser:setup` should write `.preuser/config.yml` once the setup path is clear. Do not require
+  repeated confirmations for the core config write; ask only for real decisions, secrets, local code
+  execution, optional agent-note edits, commits, pushes, or PRs.
+- `/preuser:setup` writes only `.preuser/config.yml` by default. With explicit user approval, it may
+  add/update a short `CLAUDE.md`/`AGENTS.md` note that tells future agents to keep preuser journeys
+  aligned as the product surface changes.
+- `/preuser:setup` must not edit CI, env files, package files, Dockerfiles, commit, push, or open a
+  PR unless the user separately asks.
 - External target pre-app auth supports only `target.auth.basic`, `target.auth.cookies`, and
   `target.auth.headers`, with values referenced from `sealed:`.
 - Do not invent unsupported config fields such as `secrets`, `browser_auth`, global headers,
