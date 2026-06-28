@@ -55,7 +55,7 @@ docker run --rm --privileged \
   ghcr.io/preuser-ai/preuser-runner-smoke:latest
 ```
 
-If GHCR denies the pull during preview, fall back to the local check: run the same setup/seed/run or compose command and `curl` `up.url + up.health` before opening the PR. The first full preuser receipt still comes from the hosted PR run after the config is on the default branch.
+If the public image pull fails, fall back to the local check: run the same setup/seed/run or compose command and `curl` `up.url + up.health` before opening the PR. The first full preuser receipt still comes from the hosted PR run after the config is on the default branch.
 
 ### 2. your CI/CD deploys the app
 

@@ -203,8 +203,8 @@ docker run --rm --privileged \
   ghcr.io/preuser-ai/preuser-runner-smoke:latest
 ```
 
-If GHCR denies the pull during preview, fall back to the manual local smoke above. The hosted PR run
-is still the first full-fidelity preuser test with the AI user, sandbox isolation, and video receipt.
+If the public image pull fails, fall back to the manual local smoke above. The hosted PR run is still
+the first full-fidelity preuser test with the AI user, sandbox isolation, and video receipt.
 
 ## Step 2 — Teach what makes a *gradeable* journey (this is the part that decides success)
 
