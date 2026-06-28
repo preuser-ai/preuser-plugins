@@ -10,6 +10,7 @@ on:
       - ".claude-plugin/**"
       - "*/.claude-plugin/**"
       - "*/commands/**"
+      - "README.md"
       - ".github/workflows/validate.yml"
   push:
     branches: [main]
@@ -41,4 +42,14 @@ jobs:
           # /preuser:seal must still reference the real seal tool (catches a renamed/removed flow).
           grep -q 'preuser\.credential\.seal' preuser/commands/seal.md \
             || { echo "::error::seal.md no longer references 'python -m preuser.credential.seal'"; exit 1; }
+          for cmd in setup validate seal rescue; do
+            test -f "preuser/commands/${cmd}.md" \
+              || { echo "::error::missing command file: /preuser:${cmd}"; exit 1; }
+            grep -Fq "/preuser:${cmd}" README.md \
+              || { echo "::error::README omits /preuser:${cmd}"; exit 1; }
+            grep -Fq "/preuser:${cmd}" preuser/.claude-plugin/plugin.json \
+              || { echo "::error::plugin.json omits /preuser:${cmd}"; exit 1; }
+            grep -Fq "/preuser:${cmd}" .claude-plugin/marketplace.json \
+              || { echo "::error::marketplace.json omits /preuser:${cmd}"; exit 1; }
+          done
           echo "gap checks passed"

@@ -1,7 +1,7 @@
 {
   "name": "preuser",
-  "description": "Set up preuser on a repo. /preuser:setup interviews you and drafts a .preuser/config.yml target — sandbox, static URL, or post-deploy GitHub Deployment URL — plus natural-language journeys an AI user walks once per PR. /preuser:seal encrypts a login credential so you commit only ciphertext. Draft-then-confirm; never writes a raw secret; never pushes without your say-so.",
-  "version": "0.2.0",
+  "description": "Set up and triage preuser on a repo. /preuser:setup drafts .preuser/config.yml for sandbox bring-up, static staging URLs, or post-deploy GitHub Deployment URLs. /preuser:validate checks config shape. /preuser:seal commits only ciphertext for login values. /preuser:rescue diagnoses config, deployment handoff, reachability, auth, and run evidence. Draft-then-confirm; never writes raw secrets or pushes without your say-so.",
+  "version": "0.3.0",
   "author": {
     "name": "preuser",
     "url": "https://preuser.ai"
