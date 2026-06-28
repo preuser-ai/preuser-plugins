@@ -9,7 +9,7 @@ preuser, not the preuser product/control-plane repo. Keep it small: user-facing 
 
 One marketplace plugin: `preuser`.
 
-- `/preuser:setup` drafts `.preuser/config.yml` for repo PR checks.
+- `/preuser:setup` creates or updates `.preuser/config.yml` for repo PR checks.
 - `/preuser:validate` performs a heuristic local config pre-check.
 - `/preuser:seal NAME` helps the user create a repo-bound `sealed:v1:...` credential value.
 - `/preuser:rescue` triages config, deployment handoff, reachability, auth, and run evidence.
@@ -38,7 +38,9 @@ support accurate.
   probing or journey drafting.
 - `/preuser:setup` must make app auth explicit: fresh signup, sandbox-seeded disposable login,
   sealed existing test account, or supported external `target.auth`.
-- `/preuser:setup` must draft, show, and receive explicit confirmation before writing.
+- `/preuser:setup` should write `.preuser/config.yml` once the setup path is clear. Do not require
+  repeated confirmations for the core config write; ask only for real decisions, secrets, local code
+  execution, optional agent-note edits, commits, pushes, or PRs.
 - `/preuser:setup` writes only `.preuser/config.yml` by default. With explicit user approval, it may
   add/update a short `CLAUDE.md`/`AGENTS.md` note that tells future agents to keep preuser journeys
   aligned as the product surface changes.
@@ -55,9 +57,10 @@ The setup/rescue docs must keep the two PR paths clear:
 
 1. **Sandbox target**: preuser clones the PR commit and brings up the app from source. `up:` describes
    how preuser reaches the app in the sandbox. The smoke image
-   `ghcr.io/preuser-ai/preuser-runner-smoke:latest` is an optional local bring-up check, not a hosted
-   verdict. Direct-run smoke does not need `--privileged`; compose smoke does because it runs Docker
-   inside the container.
+   `ghcr.io/preuser-ai/preuser-runner-smoke:latest` should be strongly recommended for sandbox
+   configs so the agent can verify the bring-up env instead of guessing. It is not a hosted verdict.
+   Direct-run smoke does not need `--privileged`; compose smoke does because it runs Docker inside the
+   container.
 2. **Deployed target**: preuser drives an already reachable URL. `target.kind: url` is for a stable
    staging URL. `target.kind: github_deployment` waits for a successful GitHub Deployment for the PR
    head SHA and uses its `environment_url` or `target_url`. CI env syntax in config is literal text,
