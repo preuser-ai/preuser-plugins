@@ -182,7 +182,9 @@ draft and ask the user to confirm or correct each before you rely on it.
 ### Easy sandbox smoke path
 
 Offer a local smoke test for the inferred `up:` block, but do not run long or stateful commands
-without explicit user approval:
+without explicit user approval. Be direct about the security tradeoff: this executes the repo's
+setup/seed/run or compose code on the user's machine. For unfamiliar or adversarial code, tell them
+to run the smoke in a disposable dev VM/CI job instead of their laptop.
 
 1. For compose repos: run the compose stack the repo already defines, make sure the public service
    binds to `0.0.0.0` on `up.url`'s port, then curl `up.url + health`.
@@ -192,16 +194,28 @@ without explicit user approval:
    preuser verdict and does not exercise the hosted Kata sandbox, but it catches wrong ports, missing
    env, and bad health paths before the first PR run.
 
-If they want the closest first-party smoke without waiting for a PR run, offer the runner image. Fill
-in `PREUSER_UP_URL` and `PREUSER_UP_HEALTH` from the draft:
+If they want the closest first-party smoke without waiting for a PR run, offer the runner image. It
+does not parse `.preuser/config.yml`; translate the drafted `up:` block into `PREUSER_UP_*` env vars.
+For a direct-run app, do not use `--privileged`:
 
 ```bash
-docker run --rm --privileged \
+docker run --rm -p 3000:3000 \
   -v "$PWD:/workspace" \
   -e PREUSER_UP_URL=http://localhost:3000 \
   -e PREUSER_UP_HEALTH=/ \
+  -e PREUSER_UP_RUN='npm run start -- --host 0.0.0.0' \
   ghcr.io/preuser-ai/preuser-runner-smoke:latest
 ```
+
+Add `-e PREUSER_UP_SETUP='...'` and `-e PREUSER_UP_SEED='...'` when those fields are present. Add
+each `up.env` key as `-e KEY=value` only when the value is disposable and already intended to be
+plaintext in config/receipts; for compose `env_file: .env` compatibility also set
+`-e PREUSER_APP_ENV_KEYS='KEY OTHER_KEY'`.
+
+For compose repos, omit `PREUSER_UP_RUN`; the runner detects the compose file and runs
+`docker compose up --build`. That path needs `--privileged` for the in-container Docker daemon, so
+warn that this is a stronger local trust decision and should be done only in a disposable environment
+for untrusted repos.
 
 If the public image pull fails, fall back to the manual local smoke above. The hosted PR run is still
 the first full-fidelity preuser test with the AI user, sandbox isolation, and video receipt.
