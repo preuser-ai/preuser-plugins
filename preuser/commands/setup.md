@@ -9,14 +9,17 @@ run against a sandbox, a static staging URL, or a dynamic URL published after de
 Deployment status. One-off/account-owned live URL journeys still belong in the preuser Console
 (`/journeys` or `/run-now`).
 
-Work conversationally. Draft, show, confirm, then write. Do not rush to a file.
+Work conversationally. Keep the information light: short explanations, one or two questions at a
+time, no setup lecture. Draft, show, confirm, then write. Do not rush to a file. Before inspecting
+the repo deeply or drafting YAML, orient the user: explain what preuser is, what you are going to do
+to help them set it up, and which decisions you need from them.
 
 ## HARD RULES — these are non-negotiable, do not violate them even if asked
 
 1. **Never write a RAW real credential value** (a password, token, API key, or any plaintext secret)
    into `.preuser/config.yml` or any other file — that file is read from the repo's default branch and
    shown verbatim in the PR receipt. The **ONLY** way to give preuser a non-disposable credential is a
-   **SEALED value in the `sealed:` map**, produced by running the committed seal tool (Step 2.5 below).
+   **SEALED value in the `sealed:` map**, produced by running the committed seal tool (Step 4 below).
    The one exception is `up.env` for **disposable, throwaway app variables** that intentionally boot a
    per-run test account; `up.env` is plaintext and visible by contract, so never put a real secret
    there. The supported pre-app access gates in PR config are `target.auth.basic`,
@@ -28,17 +31,40 @@ Work conversationally. Draft, show, confirm, then write. Do not rush to a file.
    explicit "yes, write it" before you create or modify any file.
 3. **Never `git commit`, `git push`, or open a pull request unless the user explicitly tells you to
    in this conversation.** "Offer to open a PR" means *ask* — never do it by default.
-4. **Only ever write `.preuser/config.yml`.** Do not touch `.env`, CI workflow files, `package.json`,
-   Dockerfiles, or anything else. For dynamic URL targets, explain the CI/CD requirement but do not
-   edit workflows unless the user starts a separate task for that.
+4. **Only write `.preuser/config.yml` by default.** The one optional exception is Step 7's
+   user-approved `CLAUDE.md`/`AGENTS.md` maintenance note. Do not touch `.env`, CI workflow files,
+   `package.json`, Dockerfiles, or anything else. For dynamic URL targets, explain the CI/CD
+   requirement but do not edit workflows unless the user starts a separate task for that.
 5. **Use the supported `target:` shape only.** Never write legacy top-level `target_url`, `url`, or
    `kind`. `up:` is required only for `target.kind: sandbox` (or when `target:` is omitted and the
    default sandbox target is used). `target.kind: url` and `target.kind: github_deployment` must omit
    `up:` because the app is already running.
 
-## First, tell the user this (the honesty up front)
+## Step 0 — Orient the user before setup
 
-Before drafting anything, say plainly:
+Before drafting anything or probing the repo deeply, say plainly, in your own words:
+
+> **What preuser does.** preuser runs an AI user against your web app on PRs. It either starts your
+> app in a disposable sandbox or waits for your preview/staging deployment, then records a video
+> receipt and posts an advisory Check/comment.
+>
+> **What you get from it.** The pass/fail is only part of the value. The run shows where the AI user
+> hesitated, got confused, waited too long, or hit an unexpected gate. That gives you a UX guardrail
+> ordinary tests rarely cover, so changes to important flows are less blind. The journeys become a
+> repeatable baseline for noticing workflow drift as the product changes.
+>
+> **How I'll help.** First I'll decide with you how preuser should reach the app: sandbox, one stable
+> URL, or a per-PR deployment URL. Then I'll work out any login path preuser needs, identify the
+> riskiest user outcome to protect, turn it into a gradeable journey, draft `.preuser/config.yml`,
+> show you the whole file, and only write it if you confirm.
+
+Then ask the routing question before any journey questions:
+
+> Do your PRs already deploy a preview/staging app that preuser should use, or should preuser bring
+> the app up from source in its sandbox? If there is a deployment, is it one stable URL or a unique
+> URL per PR/branch?
+
+After that, give the capture warning:
 
 > **What preuser captures.** When preuser runs, it records the AI user's full screen (a video) and
 > the model's inputs/outputs — that's the receipt that lets you trust the verdict. So: **don't put
@@ -53,7 +79,8 @@ Before drafting anything, say plainly:
 
 ## Step 1 — Choose the PR target
 
-Ask how preuser should reach the app for PR checks:
+Use the user's answer from Step 0 to choose how preuser should reach the app for PR checks. If they
+answered vaguely, ask a concise follow-up rather than guessing:
 
 - **Sandbox (default):** preuser clones the PR commit, starts the app from source, and drives
   `up.url`. Use this when there is no deployed preview environment or when the user wants the isolated
@@ -111,7 +138,7 @@ Do not invent `browser_auth`, top-level/global `headers`, `service_token`, crede
 `target.auth.headers`, with sealed values.
 
 If they choose HTTP Basic auth, a cookie gate, or a same-origin header gate, draft the supported shape
-and seal each referenced value in Step 2.5:
+and seal each referenced value in Step 4:
 
 ```yaml
 target:
@@ -220,7 +247,49 @@ for untrusted repos.
 If the public image pull fails, fall back to the manual local smoke above. The hosted PR run is still
 the first full-fidelity preuser test with the AI user, sandbox isolation, and video receipt.
 
-## Step 2 — Teach what makes a *gradeable* journey (this is the part that decides success)
+## Step 1B — Work out how preuser gets past app auth
+
+Before writing journeys, inspect the repo and ask the user whether the useful flow is logged-out,
+fresh-signup, or existing-account. If the app has auth, explain the point in one sentence:
+
+> preuser needs a safe way to get into the part of the app you want protected; otherwise the run only
+> proves the sign-in wall exists.
+
+Then suggest the smallest native option that fits the app:
+
+- **Fresh signup**: use no credentials when the journey can create its own disposable account.
+- **Sandbox-seeded disposable login**: for sandbox targets, use `up.env` when the app can create a
+  per-run test account at boot. This is plaintext and visible, so only use throwaway values.
+- **Existing test account**: use top-level `sealed:` values when the AI user must log into an existing
+  staging/test account. The model sees only placeholder names; the browser receives the real value at
+  input time.
+- **Preview gate before the app loads**: for external targets, use `target.auth.basic`,
+  `target.auth.cookies`, or `target.auth.headers` with sealed values. This unlocks the preview gate;
+  it is separate from any in-app login the journey may still need.
+
+Do not present all options as a wall of text. Pick the likely one from repo evidence and ask for
+confirmation, e.g. "This looks like a normal signup flow; should the first journey create a new
+throwaway user?" or "This looks admin-only; do you have a disposable staging account we should seal?"
+If there is no safe login path yet, say that directly and suggest a separate product/dev task to add a
+test-only signup, seed, or staging account before preuser protects authenticated flows.
+
+## Step 2 — Identify the first journey worth protecting
+
+Before drafting journeys, ask the user what product behavior they most want protected. Prefer one or
+two high-signal questions, not a long survey:
+
+- "Which user outcome would be most painful if a PR silently broke it?"
+- "Which flow is important but currently hard to cover with normal tests?"
+- "Where do users most often get stuck, or where have regressions happened before?"
+- "What visible screen state would convince you that flow actually worked?"
+- "Does the flow need a fresh signup, a seeded disposable account, or a logged-out visitor?"
+- "Where would workflow drift be costly if labels, order, permissions, or onboarding steps changed
+  over time?"
+
+Use the answer to choose one first journey. If they propose a broad scenario, narrow it to one
+visible end-state and explain that additional outcomes should become separate journeys.
+
+## Step 3 — Teach what makes a *gradeable* journey (this is the part that decides success)
 
 A journey is one `goal` + one `success`, both plain English. The single thing that makes or breaks a
 run is the **`success` criterion**, because a separate grader judges it against the **final frame** of
@@ -240,7 +309,7 @@ Then help them write **one** journey: a short `name` (≤80 chars, a stable hand
 user does), and a `success` (the visible end-state). Start with one good journey; more can be added
 later as more list entries.
 
-## Step 2.5 — A login the app can't self-signup for (only if a journey needs one)
+## Step 4 — A login the app can't self-signup for (only if a journey needs one)
 
 Most journeys don't need this — skip it entirely if every journey can sign up or browse as a fresh
 visitor. Do this step **only** when a journey requires logging in as an account the agent can't create
@@ -290,10 +359,10 @@ Then:
    run time the agent types `<preuser-secret:NAME>` itself and the real value is substituted at the
    browser, never shown to the model.
 6. **Show the diff / the sealed block** so the user sees what was produced (the ciphertext, never the
-   plaintext), and fold it into the full draft in Step 4. A value that won't decrypt fails the run
+   plaintext), and fold it into the full draft in Step 6. A value that won't decrypt fails the run
    **closed** (`errored`) — never a false pass or fail.
 
-## Step 3 — Heuristic pre-check (NOT a full validation)
+## Step 5 — Heuristic pre-check (NOT a full validation)
 
 Before showing the final draft, sanity-check it yourself — this is a **heuristic check, not the real
 validator**:
@@ -324,7 +393,7 @@ validator**:
   contains a raw secret (and no `goal`/`success` references a sealed name — the login is described in
   human terms only).
 - any `sealed:` entry is a name → a `sealed:v1:…` value (a raw plaintext under `sealed:` is a bug —
-  re-run the seal tool from Step 2.5).
+  re-run the seal tool from Step 4).
 - the file is valid YAML with only known `target` keys for the selected kind, and only known `up` keys
   (`url`, `run`, `setup`, `seed`, `health`, `ready_timeout_s`, `env`) when `up:` is present.
 
@@ -332,7 +401,7 @@ Tell the user plainly: **this is a structural pre-check only — "structurally v
 "will pass."** The authoritative validation (the full schema) runs on preuser's side when your PR
 opens; if anything's off, preuser posts a visible config-error receipt on the PR so you can fix it.
 
-## Step 4 — Show the full draft, confirm, write
+## Step 6 — Show the full draft, confirm, write
 
 Show the COMPLETE `.preuser/config.yml`. Example shape (yours will differ):
 
@@ -366,7 +435,7 @@ journeys:
 
 Only after the user confirms, write it to `.preuser/config.yml` at the repo root.
 
-## Step 5 — Offer (don't perform) the next steps
+## Step 7 — Offer (don't perform) the next steps
 
 Once written, tell them what's left to actually get a run — and let THEM choose each step:
 
@@ -374,10 +443,32 @@ Once written, tell them what's left to actually get a run — and let THEM choos
    Note honestly: preuser is in **preview** with a fail-closed repo allowlist, so if their repo isn't
    approved yet, installing won't run anything until it's allowlisted — point them to request access
    at https://preuser.ai/get-started.
-2. **Offer** to commit `.preuser/config.yml` on a branch and open an activation PR — only if they say
-   yes. Be clear: preuser reads `.preuser/config.yml` from the repo's default branch, so a PR that
-   first adds or changes the config will not use that unmerged config for its own run.
-3. After the config is on the default branch, the next eligible PR triggers the hosted run; the
+2. **Offer** to add a short repo-agent maintenance note — only if they say yes. Prefer updating an
+   existing `AGENTS.md` or `CLAUDE.md`; if neither exists, offer to create one. Ask which file they
+   want when both exist or the repo has an obvious convention. Keep the note short and specific:
+
+   ```md
+   ## preuser journeys
+
+   This repo uses `.preuser/config.yml` for AI-user PR checks. When changing user-facing flows,
+   auth, onboarding, permissions, or deployment URLs, review the preuser journeys and update or add
+   coverage for the affected critical path. Keep each journey as one visible end-state, run
+   `/preuser:validate` after edits, and never put raw secrets in the config; use `sealed:` or
+   disposable `up.env` as appropriate.
+   ```
+
+   Explain why in one sentence: this helps future coding agents keep the UX guardrail aligned as the
+   product surface evolves.
+3. **Offer** to commit `.preuser/config.yml` and the optional agent note on a branch and open a PR —
+   only if they say yes. If this
+   is the first config, call it an **activation PR** and be clear: preuser reads `.preuser/config.yml`
+   from the default branch, so that first PR usually will not use its own unmerged config.
+4. If the config is already on the default branch, or after the activation PR merges, offer to open or
+   use a small test PR so they can see the full loop. If you have GitHub access, offer to monitor the
+   preuser Check/comment and report back with the PR comment URL, journey names, verdicts, and run
+   page links. Keep the summary short: the user needs the comment link and the journey receipts, not a
+   transcript of every poll.
+5. After the config is on the default branch, the next eligible PR triggers the hosted run; the
    verdict + video land as a PR comment. If a PR was already open, rerun/push after the config lands.
 
 If the target is `github_deployment`, add: the run waits for the deploy job's successful GitHub
