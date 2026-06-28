@@ -31,9 +31,10 @@ to help them set it up, and which decisions you need from them.
    explicit "yes, write it" before you create or modify any file.
 3. **Never `git commit`, `git push`, or open a pull request unless the user explicitly tells you to
    in this conversation.** "Offer to open a PR" means *ask* — never do it by default.
-4. **Only ever write `.preuser/config.yml`.** Do not touch `.env`, CI workflow files, `package.json`,
-   Dockerfiles, or anything else. For dynamic URL targets, explain the CI/CD requirement but do not
-   edit workflows unless the user starts a separate task for that.
+4. **Only write `.preuser/config.yml` by default.** The one optional exception is Step 7's
+   user-approved `CLAUDE.md`/`AGENTS.md` maintenance note. Do not touch `.env`, CI workflow files,
+   `package.json`, Dockerfiles, or anything else. For dynamic URL targets, explain the CI/CD
+   requirement but do not edit workflows unless the user starts a separate task for that.
 5. **Use the supported `target:` shape only.** Never write legacy top-level `target_url`, `url`, or
    `kind`. `up:` is required only for `target.kind: sandbox` (or when `target:` is omitted and the
    default sandbox target is used). `target.kind: url` and `target.kind: github_deployment` must omit
@@ -43,19 +44,13 @@ to help them set it up, and which decisions you need from them.
 
 Before drafting anything or probing the repo deeply, say plainly, in your own words:
 
-> **What preuser does.** preuser runs an AI user against your web app on PRs. It either starts your
-> app in a disposable sandbox or waits for your preview/staging deployment, then records a video
-> receipt and posts an advisory Check/comment.
+> preuser is a UX guardrail for PRs: an AI user tries a real workflow in your app and leaves a video
+> receipt. Let's get it pointed at the right environment and pick one important journey to protect.
 >
-> **What you get from it.** The pass/fail is only part of the value. The run shows where the AI user
-> hesitated, got confused, waited too long, or hit an unexpected gate. That gives you a UX guardrail
-> ordinary tests rarely cover, so changes to important flows are less blind. The journeys become a
-> repeatable baseline for noticing workflow drift as the product changes.
->
-> **How I'll help.** First I'll decide with you how preuser should reach the app: sandbox, one stable
-> URL, or a per-PR deployment URL. Then I'll work out any login path preuser needs, identify the
-> riskiest user outcome to protect, turn it into a gradeable journey, draft `.preuser/config.yml`,
-> show you the whole file, and only write it if you confirm.
+> The pass/fail is only part of the value. The run also shows where the AI user hesitated, got
+> confused, waited too long, or hit an unexpected gate. That catches a class of UX regression normal
+> tests rarely cover, and the journeys become a baseline for noticing workflow drift as the product
+> changes.
 
 Then ask the routing question before any journey questions:
 
@@ -442,15 +437,32 @@ Once written, tell them what's left to actually get a run — and let THEM choos
    Note honestly: preuser is in **preview** with a fail-closed repo allowlist, so if their repo isn't
    approved yet, installing won't run anything until it's allowlisted — point them to request access
    at https://preuser.ai/get-started.
-2. **Offer** to commit `.preuser/config.yml` on a branch and open a PR — only if they say yes. If this
+2. **Offer** to add a short repo-agent maintenance note — only if they say yes. Prefer updating an
+   existing `AGENTS.md` or `CLAUDE.md`; if neither exists, offer to create one. Ask which file they
+   want when both exist or the repo has an obvious convention. Keep the note short and specific:
+
+   ```md
+   ## preuser journeys
+
+   This repo uses `.preuser/config.yml` for AI-user PR checks. When changing user-facing flows,
+   auth, onboarding, permissions, or deployment URLs, review the preuser journeys and update or add
+   coverage for the affected critical path. Keep each journey as one visible end-state, run
+   `/preuser:validate` after edits, and never put raw secrets in the config; use `sealed:` or
+   disposable `up.env` as appropriate.
+   ```
+
+   Explain why in one sentence: this helps future coding agents keep the UX guardrail aligned as the
+   product surface evolves.
+3. **Offer** to commit `.preuser/config.yml` and the optional agent note on a branch and open a PR —
+   only if they say yes. If this
    is the first config, call it an **activation PR** and be clear: preuser reads `.preuser/config.yml`
    from the default branch, so that first PR usually will not use its own unmerged config.
-3. If the config is already on the default branch, or after the activation PR merges, offer to open or
+4. If the config is already on the default branch, or after the activation PR merges, offer to open or
    use a small test PR so they can see the full loop. If you have GitHub access, offer to monitor the
    preuser Check/comment and report back with the PR comment URL, journey names, verdicts, and run
    page links. Keep the summary short: the user needs the comment link and the journey receipts, not a
    transcript of every poll.
-4. After the config is on the default branch, the next eligible PR triggers the hosted run; the
+5. After the config is on the default branch, the next eligible PR triggers the hosted run; the
    verdict + video land as a PR comment. If a PR was already open, rerun/push after the config lands.
 
 If the target is `github_deployment`, add: the run waits for the deploy job's successful GitHub
