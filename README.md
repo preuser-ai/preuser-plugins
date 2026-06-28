@@ -2,6 +2,8 @@
 
 The [Claude Code](https://claude.com/claude-code) plugin marketplace for **[preuser](https://preuser.ai)**: a product whose "test" is an AI user that uses your running web app like a human, on every PR or against a live URL, and posts a pass/fail with a video receipt.
 
+preuser is useful beyond a binary check: the receipt can show where the AI user hit friction, and the journeys you define become a repeatable baseline for noticing workflow drift as the product changes.
+
 This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It helps your coding agent draft and triage `.preuser/config.yml`; it does not run preuser locally or push anything without confirmation. One-off live URL journeys still live in the preuser Console (`/journeys` or `/run-now`).
 
 ## Install (Claude Code)
@@ -17,7 +19,7 @@ This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It h
 
 ## Commands
 
-- **`/preuser:setup`**: interviews you, chooses the right PR target, drafts `.preuser/config.yml`, and offers next steps. Draft-then-confirm; it writes only `.preuser/config.yml` and never commits, pushes, or opens a PR without your say-so.
+- **`/preuser:setup`**: interviews you, chooses the right PR target, works out any login path preuser needs, drafts `.preuser/config.yml`, and offers next steps. Draft-then-confirm; it writes only `.preuser/config.yml` and never commits, pushes, or opens a PR without your say-so.
 - **`/preuser:validate`**: a quick heuristic pre-check of an existing `.preuser/config.yml`. Structural only; authoritative validation runs on preuser's side when your PR opens.
 - **`/preuser:seal NAME`**: encrypts a test-account login value for the top-level `sealed:` map so the repo commits only `sealed:v1:...` ciphertext.
 - **`/preuser:rescue`**: triages a config or run that did not behave as expected, using the local config, PR Check/comment, and run page evidence.
