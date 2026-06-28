@@ -10,6 +10,8 @@ preuser, not the preuser product/control-plane repo. Keep it small: user-facing 
 One marketplace plugin: `preuser`.
 
 - `/preuser:setup` creates or updates `.preuser/config.yml` for repo PR checks.
+- `/preuser:status [OWNER/REPO]` checks the first-party `/api/repo-status` endpoint for GitHub App
+  installation/selection, config presence, and server-side run gates.
 - `/preuser:validate` performs a heuristic local config pre-check.
 - `/preuser:seal NAME` helps the user create a repo-bound `sealed:v1:...` credential value.
 - `/preuser:rescue` triages config, deployment handoff, reachability, auth, and run evidence.
@@ -21,7 +23,8 @@ GitHub App allowlist, edit CI workflows by default, or produce a local preuser v
 
 - Product/config truth: the preuser product repo and <https://preuser.ai/get-started>.
 - Marketplace overview: `README.md`.
-- Command instructions: `preuser/commands/setup.md`, `validate.md`, `seal.md`, and `rescue.md`.
+- Command instructions: `preuser/commands/setup.md`, `status.md`, `validate.md`, `seal.md`, and
+  `rescue.md`.
 - Static validation: `.github/workflows/validate.yml`.
 
 Do not restate product schema details in more places than needed. If a config field changes upstream,
@@ -50,6 +53,9 @@ support accurate.
   `target.auth.headers`, with values referenced from `sealed:`.
 - Do not invent unsupported config fields such as `secrets`, `browser_auth`, global headers,
   `service_token`, `http_credentials`, raw bearer tokens, or `up.sealed_env`.
+- `/preuser:status` is a read-only first-party preflight. The CLI path sends the user's GitHub CLI
+  token to `preuser.ai`; never do that silently. It must not imply that App installation alone proves
+  a future journey will pass or that fork PR heads are allowlisted.
 
 ## Target Model To Preserve
 
