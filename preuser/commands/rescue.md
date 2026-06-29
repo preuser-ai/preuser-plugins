@@ -109,6 +109,8 @@ Use these in order:
    Debug logs when worker/sandbox logs were captured and the viewer is authorized.
 5. For support/escalation: collect the run page URL or run id, PR URL, commit SHA, target kind, and
    the relevant config snippet.
+6. If the issue is still unclear or the setup experience itself was painful, offer
+   `/preuser:feedback` so the user can send a concise report and contact email to preuser.
 
 The plugin itself does not fetch cluster logs or talk to Kubernetes. Use the run page's Debug logs
 card when it appears; those are the first-party hosted sandbox/worker logs captured as private run
@@ -122,3 +124,4 @@ End with:
 - the primary failure bucket;
 - the smallest config/deploy/auth change to try next;
 - what evidence would confirm the fix on the next run.
+- when appropriate, whether `/preuser:feedback` would help the preuser team follow up.

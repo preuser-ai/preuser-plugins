@@ -9,8 +9,8 @@
     {
       "name": "preuser",
       "source": "./preuser",
-      "description": "Set up and triage preuser on a repo: /preuser:setup writes .preuser/config.yml targets and journeys; /preuser:status checks GitHub App connector visibility; /preuser:validate checks shape; /preuser:seal encrypts login values; /preuser:rescue diagnoses config, deploy handoff, reachability, auth, and run evidence.",
-      "version": "0.4.0"
+      "description": "Set up and triage preuser on a repo: /preuser:setup writes .preuser/config.yml targets and journeys; /preuser:status checks GitHub App connector visibility; /preuser:validate checks shape; /preuser:seal encrypts login values; /preuser:rescue diagnoses config, deploy handoff, reachability, auth, and run evidence; /preuser:feedback sends consented setup pain reports.",
+      "version": "0.5.0"
     }
   ]
 }
