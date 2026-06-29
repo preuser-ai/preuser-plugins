@@ -469,6 +469,10 @@ anything outside `.preuser/config.yml`.
 Once written, tell them what's left to actually get a run — and let THEM choose each step:
 
 1. Make sure the **preuser GitHub App** is installed on this repo (link: https://preuser.ai/get-started).
+   If `gh` is available, offer `/preuser:status` before guessing: it checks preuser's first-party
+   repo-status endpoint for App selection, default-branch config, preview allowlist, and pause state.
+   Be transparent that the CLI path sends the user's GitHub CLI token to preuser.ai for a read-only
+   repo-access check.
    Note honestly: preuser is in **preview** with a fail-closed repo allowlist, so if their repo isn't
    approved yet, installing won't run anything until it's allowlisted — point them to request access
    at https://preuser.ai/get-started.

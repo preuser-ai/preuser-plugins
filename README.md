@@ -20,6 +20,7 @@ This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It h
 ## Commands
 
 - **`/preuser:setup`**: inspects the repo, chooses the right PR target with you, works out launch/auth logistics, writes `.preuser/config.yml`, and offers next steps, including an optional repo-agent note so future agents keep journeys aligned as the product changes. It never commits, pushes, runs local smoke commands, or opens a PR without your say-so.
+- **`/preuser:status [OWNER/REPO]`**: checks preuser's first-party repo status endpoint for GitHub App installation/selection, default-branch config status, and preview run gates. The CLI path asks before sending your GitHub CLI token to preuser.ai for the read-only check.
 - **`/preuser:validate`**: a quick heuristic pre-check of an existing `.preuser/config.yml`. Structural only; authoritative validation runs on preuser's side when your PR opens.
 - **`/preuser:seal NAME`**: encrypts a test-account login value for the top-level `sealed:` map so the repo commits only `sealed:v1:...` ciphertext.
 - **`/preuser:rescue`**: triages a config or run that did not behave as expected, using the local config, PR Check/comment, and run page evidence.
@@ -120,11 +121,17 @@ preuser reads `.preuser/config.yml` from the repo's default branch. A PR that fi
 
 The full config reference lives at **<https://preuser.ai/get-started>**. That page and the product schema are the source of truth; this README stays at the workflow level.
 
+## Connector Status
+
+Run `/preuser:status` when you want Claude to check whether the preuser GitHub App is installed and selected for the current repo. It calls `https://preuser.ai/api/repo-status?repo=OWNER/REPO` with an authorized preuser session or, with your approval, your GitHub CLI token from `gh auth token`. If it does not find the repo, install or update the App selection at <https://github.com/apps/preuser-ai/installations/select_target>.
+
+That status is still a preflight: it can report connector, config, allowlist, and pause blockers, but the next proof is the preuser PR Check/comment after the config is on the default branch.
+
 ## Debugging and Logs
 
 The first-party feedback loop is the PR Check/comment plus the preuser run page. The run page shows live status while running and, when finalized, the video, timeline, screenshots, verdict result, and private Debug logs when worker/sandbox logs were captured.
 
-`/preuser:rescue` inspects your config, classifies likely failures, and asks for the PR URL or run page URL when needed. Local smoke logs are the Docker terminal output. For hosted bring-up failures, open the run page as an authorized viewer and check the Debug logs card if it appears; otherwise keep the run page URL/run id, PR URL, commit SHA, and the relevant `.preuser/config.yml` snippet for support.
+`/preuser:rescue` inspects your config, checks connector visibility with `/preuser:status` when no run appeared, classifies likely failures, and asks for the PR URL or run page URL when needed. Local smoke logs are the Docker terminal output. For hosted bring-up failures, open the run page as an authorized viewer and check the Debug logs card if it appears; otherwise keep the run page URL/run id, PR URL, commit SHA, and the relevant `.preuser/config.yml` snippet for support.
 
 ## Heads Up (Preview)
 

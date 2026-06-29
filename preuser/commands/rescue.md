@@ -44,9 +44,11 @@ changed config has already run.
 Use the evidence to put the issue in exactly one primary bucket, then list secondary suspects.
 
 1. **No preuser run appeared.**
-   Check whether the GitHub App is installed, the repo is approved in preview, the config is on the
-   default branch, and the PR targets the repo whose default branch preuser reads. Tell the user that
-   discovery/Console setup never loosens the fail-closed repo allowlist.
+   Run `/preuser:status` first when `gh` is available. It checks preuser's first-party repo-status
+   endpoint for App selection, default-branch config, preview allowlist, and pause state. Tell the
+   user before sending their GitHub CLI token to preuser.ai. Then check whether the PR targets the
+   repo whose default branch preuser reads. Tell the user that discovery/Console setup never loosens
+   the fail-closed repo allowlist.
 
 2. **Config error.**
    Prefer the preuser PR comment/Check summary if present; that is the authoritative server-side
@@ -101,10 +103,12 @@ Use the evidence to put the issue in exactly one primary bucket, then list secon
 Use these in order:
 
 1. Local heuristic: `/preuser:validate` or the checks above.
-2. PR Check/comment: authoritative config errors and the run link.
-3. Run page: live status while running; final video, timeline, screenshots, result, and private
+2. Connector preflight: `/preuser:status` checks App selection, config, allowlist, and pause state
+   through preuser's first-party repo-status endpoint.
+3. PR Check/comment: authoritative config errors and the run link.
+4. Run page: live status while running; final video, timeline, screenshots, result, and private
    Debug logs when worker/sandbox logs were captured and the viewer is authorized.
-4. For support/escalation: collect the run page URL or run id, PR URL, commit SHA, target kind, and
+5. For support/escalation: collect the run page URL or run id, PR URL, commit SHA, target kind, and
    the relevant config snippet.
 
 The plugin itself does not fetch cluster logs or talk to Kubernetes. Use the run page's Debug logs

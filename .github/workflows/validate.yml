@@ -42,7 +42,7 @@ jobs:
           # /preuser:seal must still reference the real seal tool (catches a renamed/removed flow).
           grep -q 'preuser\.credential\.seal' preuser/commands/seal.md \
             || { echo "::error::seal.md no longer references 'python -m preuser.credential.seal'"; exit 1; }
-          for cmd in setup validate seal rescue; do
+          for cmd in setup status validate seal rescue; do
             test -f "preuser/commands/${cmd}.md" \
               || { echo "::error::missing command file: /preuser:${cmd}"; exit 1; }
             grep -Fq "/preuser:${cmd}" README.md \
