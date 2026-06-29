@@ -146,7 +146,7 @@ The full config reference lives at **<https://preuser.ai/get-started>**. That pa
 
 ## Connector Status
 
-Run `/preuser:status` when you want Claude to check whether the preuser GitHub App is installed and selected for the current repo. It calls `https://preuser.ai/api/repo-status?repo=OWNER/REPO` with an authorized preuser session or, with your approval, your GitHub CLI token from `gh auth token`. If it does not find the repo, install or update the App selection at <https://github.com/apps/preuser-ai/installations/select_target>.
+Use `/preuser:status` in Claude Code, or ask Codex to use `$preuser` to check status, when you want your coding agent to check whether the preuser GitHub App is installed and selected for the current repo. It calls `https://preuser.ai/api/repo-status?repo=OWNER/REPO` with an authorized preuser session or, with your approval, your GitHub CLI token from `gh auth token`. If it does not find the repo, install or update the App selection at <https://github.com/apps/preuser-ai/installations/select_target>.
 
 That status is still a preflight: it can report connector, config, allowlist, and pause blockers, but the next proof is the preuser PR Check/comment on an eligible PR, including a PR that first adds or changes `.preuser/config.yml`.
 

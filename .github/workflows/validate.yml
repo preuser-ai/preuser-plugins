@@ -36,6 +36,49 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code@2.1.178
       - name: Validate marketplace + plugins (strict)
         run: claude plugin validate . --strict
+      - name: Validate Codex plugin surface
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          root = Path(".")
+          manifest = json.loads((root / "preuser/.codex-plugin/plugin.json").read_text())
+          assert manifest["name"] == "preuser"
+          assert manifest["skills"] == "./skills/"
+          assert re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", manifest["version"])
+          interface = manifest["interface"]
+          for key in (
+              "displayName",
+              "shortDescription",
+              "longDescription",
+              "developerName",
+              "category",
+              "capabilities",
+              "websiteURL",
+              "defaultPrompt",
+              "brandColor",
+          ):
+              assert interface.get(key), f"missing interface.{key}"
+          assert str(interface["websiteURL"]).startswith("https://")
+
+          skill = (root / "preuser/skills/preuser/SKILL.md").read_text()
+          assert skill.startswith("---\n")
+          frontmatter, body = skill.split("---\n", 2)[1:]
+          assert re.search(r"^name:\s*preuser\s*$", frontmatter, re.M)
+          assert re.search(r"^description:\s*.+", frontmatter, re.M)
+          for ref in ("setup", "status", "validate", "seal", "rescue", "feedback"):
+              assert f"../../commands/{ref}.md" in body
+          assert f"preuser-codex-plugin:v{manifest['version']}" in body
+
+          marketplace = json.loads((root / ".agents/plugins/marketplace.json").read_text())
+          plugin = marketplace["plugins"][0]
+          assert plugin["name"] == "preuser"
+          assert plugin["source"] == {"source": "local", "path": "./preuser"}
+          assert plugin["policy"]["installation"] == "AVAILABLE"
+          assert plugin["policy"]["authentication"] == "ON_INSTALL"
+          PY
       - name: Cover the validator's blind spots
         run: |
           set -euo pipefail

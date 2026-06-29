@@ -19,8 +19,6 @@
     "category": "Developer Tools",
     "capabilities": ["Interactive", "Write"],
     "websiteURL": "https://preuser.ai/",
-    "privacyPolicyURL": "https://preuser.ai/privacy",
-    "termsOfServiceURL": "https://preuser.ai/terms",
     "defaultPrompt": [
       "Use $preuser to set up preuser PR checks for this repo.",
       "Use $preuser to validate this repo's preuser config.",
