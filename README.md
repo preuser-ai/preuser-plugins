@@ -1,10 +1,10 @@
 # preuser-plugins
 
-The [Claude Code](https://claude.com/claude-code) plugin marketplace for **[preuser](https://preuser.ai)**: a product whose "test" is an AI user that uses your running web app like a human, on every PR or against a live URL, and posts a pass/fail with a video receipt.
+The agent plugin marketplace for **[preuser](https://preuser.ai)**: a product whose "test" is an AI user that uses your running web app like a human, on every PR or against a live URL, and posts a pass/fail with a video receipt.
 
 preuser is useful beyond a binary check: the receipt can show where the AI user hit friction, and the journeys you define become a repeatable baseline for noticing workflow drift as the product changes.
 
-This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It helps your coding agent set up and triage `.preuser/config.yml`; it does not run preuser locally or push anything without confirmation. One-off live URL journeys still live in the preuser Console (`/journeys` or `/run-now`).
+This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It supports Claude Code slash commands and a Codex skill in the same plugin directory. It helps your coding agent set up and triage `.preuser/config.yml`; it does not run preuser locally or push anything without confirmation. One-off live URL journeys still live in the preuser Console (`/journeys` or `/run-now`).
 
 ## Install (Claude Code)
 
@@ -17,7 +17,25 @@ This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It h
 
 > Requires a Claude Code version with plugin-marketplace support and access to the private preview marketplace. `gittb/preuser-plugins` currently redirects to `preuser-ai/preuser-plugins`; use the `preuser-ai` path in docs and support.
 
-## Commands
+## Install (Codex)
+
+```
+codex plugin marketplace add preuser-ai/preuser-plugins --ref main
+codex plugin add preuser@preuser-plugins
+```
+
+Start a new Codex thread after installing so the skill metadata is loaded, then ask Codex to use
+`$preuser` for the task, for example:
+
+```
+Use $preuser to set up preuser PR checks for this repo.
+```
+
+The Codex plugin lives at `preuser/.codex-plugin/plugin.json` and `preuser/skills/preuser/SKILL.md`.
+The skill reads the same workflow files as the Claude commands so the two agent surfaces stay
+aligned.
+
+## Commands And Skill Workflows
 
 - **`/preuser:setup`**: inspects the repo, chooses the right PR target with you, works out launch/auth logistics, writes `.preuser/config.yml`, and offers next steps, including an optional repo-agent note so future agents keep journeys aligned as the product changes. It never commits, pushes, runs local smoke commands, or opens a PR without your say-so.
 - **`/preuser:status [OWNER/REPO]`**: checks preuser's first-party repo status endpoint for GitHub App installation/selection, repo config visibility, and preview run gates. The CLI path asks before sending your GitHub CLI token to preuser.ai for the read-only check.
@@ -25,6 +43,10 @@ This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It h
 - **`/preuser:rescue`**: triages a config or run that did not behave as expected, using the local config, PR Check/comment, and run page evidence.
 - **`/preuser:seal NAME`**: encrypts a test-account login value for the top-level `sealed:` map so the repo commits only `sealed:v1:...` ciphertext.
 - **`/preuser:feedback`**: with your approval, sends a concise setup/rescue pain report and contact email to preuser so the team can follow up. It includes a public plugin release marker for spam friction, not authentication.
+
+In Codex, use the same workflows as natural-language skill requests: "Use `$preuser` to set up",
+"Use `$preuser` to validate", "Use `$preuser` to check status", "Use `$preuser` to seal", "Use
+`$preuser` to rescue", or "Use `$preuser` to send feedback."
 
 ## The Two PR Target Paths
 
@@ -124,7 +146,7 @@ The full config reference lives at **<https://preuser.ai/get-started>**. That pa
 
 ## Connector Status
 
-Run `/preuser:status` when you want Claude to check whether the preuser GitHub App is installed and selected for the current repo. It calls `https://preuser.ai/api/repo-status?repo=OWNER/REPO` with an authorized preuser session or, with your approval, your GitHub CLI token from `gh auth token`. If it does not find the repo, install or update the App selection at <https://github.com/apps/preuser-ai/installations/select_target>.
+Use `/preuser:status` in Claude Code, or ask Codex to use `$preuser` to check status, when you want your coding agent to check whether the preuser GitHub App is installed and selected for the current repo. It calls `https://preuser.ai/api/repo-status?repo=OWNER/REPO` with an authorized preuser session or, with your approval, your GitHub CLI token from `gh auth token`. If it does not find the repo, install or update the App selection at <https://github.com/apps/preuser-ai/installations/select_target>.
 
 That status is still a preflight: it can report connector, config, allowlist, and pause blockers, but the next proof is the preuser PR Check/comment on an eligible PR, including a PR that first adds or changes `.preuser/config.yml`.
 
@@ -136,9 +158,10 @@ The first-party feedback loop is the PR Check/comment plus the preuser run page.
 
 When the setup/rescue path itself is confusing, run `/preuser:feedback`. It asks before sending
 anything to `preuser.ai`, includes your contact email so the team can reply, and should never include
-raw secrets, real customer data, or production credentials. Feedback requests include the public
-marker `preuser-plugin:v0.5.0` so preuser can distinguish plugin-origin reports from generic web
-spam.
+raw secrets, real customer data, or production credentials. Feedback requests include a public marker
+so preuser can distinguish plugin-origin reports from generic web spam. Claude Code sends
+`preuser-plugin:v0.5.0`; Codex sends `preuser-codex-plugin:v0.5.0`. Both are public release markers,
+not authentication.
 
 ## Heads Up (Preview)
 
