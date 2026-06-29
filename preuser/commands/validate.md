@@ -71,9 +71,8 @@ run the same setup/seed/run or compose command locally and curl `up.url + health
 this only catches local bring-up mistakes; the authoritative run still happens in preuser's hosted
 sandbox.
 
-Mention the default-branch invariant when relevant: preuser reads `.preuser/config.yml` from the
-repo's default branch, so an unmerged PR that changes only this config is an activation PR, not proof
-that the changed config has already run.
+When relevant, remind the user that hosted preuser sees committed and pushed PR code/config, not
+uncommitted local worktree edits.
 
 End with the honest caveat: **a clean heuristic check does not mean the run will pass** — it means
 the config is structurally plausible. The real schema validation happens when your PR opens, and a
