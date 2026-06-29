@@ -1,0 +1,4 @@
+interface:
+  display_name: "preuser"
+  short_description: "Set up human-like PR journey checks"
+  default_prompt: "Use $preuser to set up preuser PR checks for this repo."

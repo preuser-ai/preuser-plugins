@@ -1,13 +1,15 @@
 # preuser-plugins - AI assistant primer
 
-Read before substantive work in this repo. This repository is the Claude Code plugin marketplace for
+Read before substantive work in this repo. This repository is the agent plugin marketplace for
 preuser, not the preuser product/control-plane repo. Keep it small: user-facing workflow docs live in
-`README.md`; command behavior lives in `preuser/commands/*.md`; plugin metadata lives in
-`.claude-plugin/marketplace.json` and `preuser/.claude-plugin/plugin.json`.
+`README.md`; command behavior lives in `preuser/commands/*.md`; Claude plugin metadata lives in
+`.claude-plugin/marketplace.json` and `preuser/.claude-plugin/plugin.json`; Codex plugin metadata
+lives in `.agents/plugins/marketplace.json`, `preuser/.codex-plugin/plugin.json`, and
+`preuser/skills/preuser/SKILL.md`.
 
 ## What This Repo Ships
 
-One marketplace plugin: `preuser`.
+One marketplace plugin: `preuser`, exposed as Claude Code slash commands and as a Codex skill.
 
 - `/preuser:setup` creates or updates `.preuser/config.yml` for repo PR checks.
 - `/preuser:status [OWNER/REPO]` checks the first-party `/api/repo-status` endpoint for GitHub App
@@ -16,6 +18,8 @@ One marketplace plugin: `preuser`.
 - `/preuser:seal NAME` helps the user create a repo-bound `sealed:v1:...` credential value.
 - `/preuser:rescue` triages config, deployment handoff, reachability, auth, and run evidence.
 - `/preuser:feedback` sends a consented setup/rescue pain report to preuser with a contact email.
+- Codex uses the `preuser` skill for the same six workflows; the skill points at the command files
+  rather than duplicating their operational instructions.
 
 The plugin helps a coding agent configure preuser. It does not run the hosted service, change the
 GitHub App allowlist, edit CI workflows by default, or produce a local preuser verdict.
@@ -26,6 +30,8 @@ GitHub App allowlist, edit CI workflows by default, or produce a local preuser v
 - Marketplace overview: `README.md`.
 - Command instructions: `preuser/commands/setup.md`, `status.md`, `validate.md`, `seal.md`,
   `rescue.md`, and `feedback.md`.
+- Codex manifest + skill: `preuser/.codex-plugin/plugin.json`,
+  `preuser/skills/preuser/SKILL.md`.
 - Static validation: `.github/workflows/validate.yml`.
 
 Do not restate product schema details in more places than needed. If a config field changes upstream,
@@ -57,9 +63,10 @@ support accurate.
 - `/preuser:status` is a read-only first-party preflight. The CLI path sends the user's GitHub CLI
   token to `preuser.ai`; never do that silently. It must not imply that App installation alone proves
   a future journey will pass or that fork PR heads are allowlisted.
-- `/preuser:feedback` must never send a report silently. It must show the redacted payload, require
-  a contact email and explicit consent, avoid raw secrets/customer data, and include the public
-  plugin release marker `preuser-plugin:v0.5.0` as spam friction rather than auth.
+- `/preuser:feedback` and the Codex feedback workflow must never send a report silently. They must
+  show the redacted payload, require a contact email and explicit consent, avoid raw secrets/customer
+  data, and include the public plugin release marker as spam friction rather than auth. Claude Code
+  uses `preuser-plugin:v0.5.0`; Codex uses `preuser-codex-plugin:v0.5.0`.
 
 ## Target Model To Preserve
 
@@ -93,11 +100,13 @@ not public log dumps.
 
 ## Validation
 
-Before opening or merging a PR, run the static plugin validation when the Claude Code CLI is
-available:
+Before opening or merging a PR, run the static plugin validation when the Claude Code CLI and Codex
+skill/plugin helper scripts are available:
 
 ```bash
 claude plugin validate . --strict
+python3 /home/coder/.codex/skills/.system/skill-creator/scripts/quick_validate.py preuser/skills/preuser
+python3 /home/coder/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py preuser
 ```
 
 CI also checks marketplace source directories, README/plugin metadata command mentions, and that

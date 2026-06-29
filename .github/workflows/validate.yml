@@ -1,15 +1,18 @@
 # Static CI for the plugin marketplace: the official `claude plugin validate` (schema + command
-# frontmatter + referenced-file existence), plus greps for the gaps it doesn't cover (marketplace
-# `source:` dirs, and that /preuser:seal still references the real seal tool). No model call, no
-# secrets needed — validate is static. Behavioral `/plugin` checks stay a manual dogfood pass.
+# frontmatter + referenced-file existence), plus greps for the gaps it doesn't cover and for the
+# Codex plugin surface. No model call, no secrets needed — validate is static. Behavioral install
+# checks stay a manual dogfood pass.
 name: validate
 
 on:
   pull_request:
     paths:
       - ".claude-plugin/**"
+      - ".agents/**"
       - "*/.claude-plugin/**"
+      - "*/.codex-plugin/**"
       - "*/commands/**"
+      - "*/skills/**"
       - "README.md"
       - "CLAUDE.md"
       - ".github/workflows/validate.yml"
@@ -40,6 +43,23 @@ jobs:
           while read -r src; do
             test -d "$src" || { echo "::error::marketplace source dir missing: $src"; exit 1; }
           done < <(jq -r '.plugins[].source' .claude-plugin/marketplace.json)
+          while read -r src; do
+            test -d "$src" || { echo "::error::Codex marketplace source dir missing: $src"; exit 1; }
+          done < <(jq -r '.plugins[].source.path' .agents/plugins/marketplace.json)
+          test -f preuser/.codex-plugin/plugin.json \
+            || { echo "::error::missing Codex plugin manifest"; exit 1; }
+          test -f preuser/skills/preuser/SKILL.md \
+            || { echo "::error::missing Codex preuser skill"; exit 1; }
+          grep -Fq "name: preuser" preuser/skills/preuser/SKILL.md \
+            || { echo "::error::Codex skill frontmatter missing name"; exit 1; }
+          grep -Fq "description:" preuser/skills/preuser/SKILL.md \
+            || { echo "::error::Codex skill frontmatter missing description"; exit 1; }
+          test "$(jq -r '.version' preuser/.codex-plugin/plugin.json)" = "$(jq -r '.version' preuser/.claude-plugin/plugin.json)" \
+            || { echo "::error::Claude and Codex plugin versions differ"; exit 1; }
+          grep -Fq "preuser-codex-plugin:v$(jq -r '.version' preuser/.codex-plugin/plugin.json)" preuser/skills/preuser/SKILL.md \
+            || { echo "::error::Codex skill feedback marker does not match plugin version"; exit 1; }
+          grep -Fq "preuser-codex-plugin:v$(jq -r '.version' preuser/.codex-plugin/plugin.json)" README.md \
+            || { echo "::error::README omits Codex feedback marker"; exit 1; }
           # /preuser:seal must still reference the real seal tool (catches a renamed/removed flow).
           grep -q 'preuser\.credential\.seal' preuser/commands/seal.md \
             || { echo "::error::seal.md no longer references 'python -m preuser.credential.seal'"; exit 1; }

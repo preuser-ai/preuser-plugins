@@ -1,0 +1,20 @@
+{
+  "name": "preuser-plugins",
+  "interface": {
+    "displayName": "preuser"
+  },
+  "plugins": [
+    {
+      "name": "preuser",
+      "source": {
+        "source": "local",
+        "path": "./preuser"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
