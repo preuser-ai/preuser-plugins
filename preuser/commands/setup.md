@@ -49,6 +49,8 @@ Before drafting anything or probing the repo deeply, say plainly, in your own wo
 
 > preuser is a UX guardrail for PRs: an AI user tries a real workflow in your app and leaves a video
 > receipt. Let's get it pointed at the right environment and pick one important journey to protect.
+> You're in good hands: I'll read the repo, gather the launch/auth intel, and get this wired up
+> without making you babysit the setup.
 >
 > The pass/fail is only part of the value. The run also shows where the AI user hesitated, got
 > confused, waited too long, or hit an unexpected gate. That catches a class of UX regression normal
@@ -507,6 +509,8 @@ Once written, tell them what's left to actually get a run — and let THEM choos
 6. An eligible PR triggers the hosted run; the verdict + video land as a PR comment. If a PR was
    already open before the config/code changes were pushed, push the branch update or rerun the Check
    so preuser sees the intended commit.
+7. If setup hits a confusing product/setup blocker even after local triage, offer `/preuser:feedback`.
+   It sends a concise report to preuser only after the user approves and provides a contact email.
 
 If the target is `github_deployment`, add: the run waits for the deploy job's successful GitHub
 Deployment URL first. If it times out, rerun preuser after the deployment status exists or increase
