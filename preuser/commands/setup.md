@@ -18,8 +18,8 @@ edits, commits, pushes, or PRs.
 ## HARD RULES — these are non-negotiable, do not violate them even if asked
 
 1. **Never write a RAW real credential value** (a password, token, API key, or any plaintext secret)
-   into `.preuser/config.yml` or any other file — that file is read from the repo's default branch and
-   shown verbatim in the PR receipt. The **ONLY** way to give preuser a non-disposable credential is a
+   into `.preuser/config.yml` or any other file — that file is committed to the repo and shown
+   verbatim in the PR receipt. The **ONLY** way to give preuser a non-disposable credential is a
    **SEALED value in the `sealed:` map**, produced by running the committed seal tool (Step 4 below).
    The one exception is `up.env` for **disposable, throwaway app variables** that intentionally boot a
    per-run test account; `up.env` is plaintext and visible by contract, so never put a real secret
@@ -352,9 +352,9 @@ Then:
    Ask which fields the login needs (for example, email and password) and pick a short snake_case name
    for each value, e.g. `admin_pass`, `admin_user`. Say plainly: *"Don't paste the secret here; we'll
    seal it through a hidden terminal prompt or you can run the command yourself."*
-2. **Confirm the repo the value binds to.** It's sealed to the **base / default-branch repo**
-   (`owner/name`) — the repo preuser reads the config from. If you're in a **fork**, ask which repo
-   that is (the upstream they open PRs against), and use that `owner/name`, not the fork's.
+2. **Confirm the repo the value binds to.** It's sealed to the **base repo** (`owner/name`) — the repo
+   that receives the PR. If you're in a **fork**, ask which repo that is (the upstream they open PRs
+   against), and use that `owner/name`, not the fork's.
 3. **Run the committed seal tool** — never build the ciphertext yourself. Prefer a hidden terminal
    prompt so the value never lands in chat, argv, or shell history:
 
@@ -425,7 +425,8 @@ validator**:
 
 Tell the user plainly: **this is a structural pre-check only — "structurally valid" does not mean
 "will pass."** The authoritative validation (the full schema) runs on preuser's side when your PR
-opens; if anything's off, preuser posts a visible config-error receipt on the PR so you can fix it.
+opens, against that PR's config and code; if anything's off, preuser posts a visible config-error
+receipt on the PR so you can fix it.
 
 ## Step 6 — Write the config and show what changed
 
@@ -470,13 +471,13 @@ Once written, tell them what's left to actually get a run — and let THEM choos
 
 1. Make sure the **preuser GitHub App** is installed on this repo (link: https://preuser.ai/get-started).
    If `gh` is available, offer `/preuser:status` before guessing: it checks preuser's first-party
-   repo-status endpoint for App selection, default-branch config, preview allowlist, and pause state.
+   repo-status endpoint for App selection, repo config visibility, preview allowlist, and pause state.
    Be transparent that the CLI path sends the user's GitHub CLI token to preuser.ai for a read-only
    repo-access check.
    Note honestly: preuser is in **preview** with a fail-closed repo allowlist, so if their repo isn't
    approved yet, installing won't run anything until it's allowlisted — point them to request access
    at https://preuser.ai/get-started.
-2. For sandbox targets, strongly recommend the runner smoke before opening the activation/test PR.
+2. For sandbox targets, strongly recommend the runner smoke before opening the setup/test PR.
    Phrase it as verification, not ceremony: "Let's make sure the sandbox env is actually right before
    we ask preuser's hosted worker to run it." Do not run it without user approval because it executes
    the repo's setup/seed/run or compose code.
@@ -497,16 +498,15 @@ Once written, tell them what's left to actually get a run — and let THEM choos
    Explain why in one sentence: this helps future coding agents keep the UX guardrail aligned as the
    product surface evolves.
 4. **Offer** to commit `.preuser/config.yml` and the optional agent note on a branch and open a PR —
-   only if they say yes. If this
-   is the first config, call it an **activation PR** and be clear: preuser reads `.preuser/config.yml`
-   from the default branch, so that first PR usually will not use its own unmerged config.
-5. If the config is already on the default branch, or after the activation PR merges, offer to open or
-   use a small test PR so they can see the full loop. If you have GitHub access, offer to monitor the
+   only if they say yes. If this is the first config, call it a **setup/test PR** and be clear:
+   preuser runs against the config and code in that PR once the connector and preview gates are ready.
+5. Offer to monitor that PR so they can see the full loop. If you have GitHub access, watch the
    preuser Check/comment and report back with the PR comment URL, journey names, verdicts, and run
    page links. Keep the summary short: the user needs the comment link and the journey receipts, not a
    transcript of every poll.
-6. After the config is on the default branch, the next eligible PR triggers the hosted run; the
-   verdict + video land as a PR comment. If a PR was already open, rerun/push after the config lands.
+6. An eligible PR triggers the hosted run; the verdict + video land as a PR comment. If a PR was
+   already open before the config/code changes were pushed, push the branch update or rerun the Check
+   so preuser sees the intended commit.
 
 If the target is `github_deployment`, add: the run waits for the deploy job's successful GitHub
 Deployment URL first. If it times out, rerun preuser after the deployment status exists or increase

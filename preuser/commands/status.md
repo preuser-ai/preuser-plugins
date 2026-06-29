@@ -54,7 +54,8 @@ If the response has `"state": "ok"` and `"connector": {"state": "selected", ...}
 - **Run gate:** report `run_gate.can_run_own_branch_pr`, `own_branch_prs_allowlisted`,
   `pause.state`, and any `blockers`.
 - **Next:** if `can_run_own_branch_pr` is false, name the smallest blocker to clear first. If it is
-  true, the next proof is an eligible PR after `.preuser/config.yml` is on the default branch.
+  true, the next proof is an eligible PR; a PR that adds or changes `.preuser/config.yml` should run
+  against that PR's config and code.
 
 If the connector state is not `selected`, report:
 
@@ -66,8 +67,7 @@ If the connector state is not `selected`, report:
 
 ## Optional local context
 
-If you are inside the repo, also mention whether `.preuser/config.yml` exists locally. Do not call a
-local file "active" unless it is already on the default branch; preuser reads the config from the
-repo's default branch when a PR opens.
+If you are inside the repo, also mention whether `.preuser/config.yml` exists locally. Be clear that
+hosted preuser sees committed and pushed PR code/config, not uncommitted local worktree edits.
 
 End with a compact status summary, not a transcript of every `gh api` call.

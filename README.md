@@ -20,7 +20,7 @@ This marketplace ships one plugin, **`preuser`**, for repo-owned PR checks. It h
 ## Commands
 
 - **`/preuser:setup`**: inspects the repo, chooses the right PR target with you, works out launch/auth logistics, writes `.preuser/config.yml`, and offers next steps, including an optional repo-agent note so future agents keep journeys aligned as the product changes. It never commits, pushes, runs local smoke commands, or opens a PR without your say-so.
-- **`/preuser:status [OWNER/REPO]`**: checks preuser's first-party repo status endpoint for GitHub App installation/selection, default-branch config status, and preview run gates. The CLI path asks before sending your GitHub CLI token to preuser.ai for the read-only check.
+- **`/preuser:status [OWNER/REPO]`**: checks preuser's first-party repo status endpoint for GitHub App installation/selection, repo config visibility, and preview run gates. The CLI path asks before sending your GitHub CLI token to preuser.ai for the read-only check.
 - **`/preuser:validate`**: a quick heuristic pre-check of an existing `.preuser/config.yml`. Structural only; authoritative validation runs on preuser's side when your PR opens.
 - **`/preuser:seal NAME`**: encrypts a test-account login value for the top-level `sealed:` map so the repo commits only `sealed:v1:...` ciphertext.
 - **`/preuser:rescue`**: triages a config or run that did not behave as expected, using the local config, PR Check/comment, and run page evidence.
@@ -63,7 +63,7 @@ docker run --rm -p 3000:3000 \
 
 Add `PREUSER_UP_SETUP` and `PREUSER_UP_SEED` when your `up:` block uses them. For compose repos, omit `PREUSER_UP_RUN`; the smoke image detects the compose file and needs `--privileged` for its in-container Docker daemon.
 
-If the public image pull fails, fall back to the local check: run the same setup/seed/run or compose command and `curl` `up.url + up.health` before opening the PR. The first full preuser receipt still comes from the hosted PR run after the config is on the default branch.
+If the public image pull fails, fall back to the local check: run the same setup/seed/run or compose command and `curl` `up.url + up.health` before opening the PR. The first full preuser receipt still comes from the hosted PR run, using the config and code from that PR.
 
 ### 2. your CI/CD deploys the app
 
@@ -117,7 +117,7 @@ Header values are attached only to the resolved target origin. For `Authorizatio
 
 A small `.preuser/config.yml` at your repo root: a `target:` block when you want something other than the default sandbox, an `up:` block only for sandbox bring-up, and a list of `journeys` where each journey has a plain-English `goal` plus a visible `success` criterion. That's it: no test code. For dynamic preview URLs, CI/CD must publish the URL after deployment as a GitHub Deployment status; preuser waits for that durable signal.
 
-preuser reads `.preuser/config.yml` from the repo's default branch. A PR that first adds or changes the config is an activation PR; after it lands, the next eligible PR uses that config.
+For PR checks, preuser reads `.preuser/config.yml` and the app code from the PR commit it is checking. The first PR that adds or changes the config can run with that config, as long as the connector and preview gates are ready.
 
 The full config reference lives at **<https://preuser.ai/get-started>**. That page and the product schema are the source of truth; this README stays at the workflow level.
 
@@ -125,7 +125,7 @@ The full config reference lives at **<https://preuser.ai/get-started>**. That pa
 
 Run `/preuser:status` when you want Claude to check whether the preuser GitHub App is installed and selected for the current repo. It calls `https://preuser.ai/api/repo-status?repo=OWNER/REPO` with an authorized preuser session or, with your approval, your GitHub CLI token from `gh auth token`. If it does not find the repo, install or update the App selection at <https://github.com/apps/preuser-ai/installations/select_target>.
 
-That status is still a preflight: it can report connector, config, allowlist, and pause blockers, but the next proof is the preuser PR Check/comment after the config is on the default branch.
+That status is still a preflight: it can report connector, config, allowlist, and pause blockers, but the next proof is the preuser PR Check/comment on an eligible PR, including a PR that first adds or changes `.preuser/config.yml`.
 
 ## Debugging and Logs
 
