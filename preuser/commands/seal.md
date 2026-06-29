@@ -16,8 +16,8 @@ never written in plaintext config and the AI model sees only the placeholder nam
 
 1. **Never echo, log, or write the raw value.** Take it from the user, pipe it straight into the seal
    tool, and only ever show/commit the resulting `sealed:v1:…` ciphertext.
-2. **Never put a raw credential anywhere in `.preuser/config.yml`** — config is read from the default
-   branch and shown in the PR receipt. Only the sealed ciphertext goes in, under `sealed:`.
+2. **Never put a raw credential anywhere in `.preuser/config.yml`** — config is committed to the repo
+   and shown in the PR receipt. Only the sealed ciphertext goes in, under `sealed:`.
 
 ## Steps
 
@@ -26,10 +26,10 @@ never written in plaintext config and the AI model sees only the placeholder nam
    `<preuser-secret:NAME>` when it needs to enter the value. Do not put the placeholder or the value in
    `goal`/`success`; describe the login in human terms.
 
-2. **Confirm the repo it binds to.** A sealed value is bound to ONE repo. Use the **base /
-   default-branch repo** (`owner/name`) — the repo whose `.preuser/config.yml` preuser reads. Get it
-   from `git remote get-url origin` (and if this is a fork, ask for the upstream `owner/name`). Show
-   the user the exact `owner/name` you'll bind to and confirm.
+2. **Confirm the repo it binds to.** A sealed value is bound to ONE repo. Use the **base repo**
+   (`owner/name`) — the repo that receives the PR. Get it from `git remote get-url origin` (and if
+   this is a fork, ask for the upstream `owner/name`). Show the user the exact `owner/name` you'll
+   bind to and confirm.
 
 3. **Take the value through a hidden terminal prompt and seal it.** The seal tool ships with the
    `preuser` package — if `python -m preuser.credential.seal --help` isn't available, install it first

@@ -35,9 +35,8 @@ Run the same heuristic checks as `/preuser:validate`:
 If the config has obvious problems, give the smallest patch suggestion. Do not rewrite the whole file
 unless the user asks.
 
-Mention the default-branch invariant when relevant: preuser reads `.preuser/config.yml` from the repo's
-default branch, so an unmerged PR that changes only this config is an activation PR, not proof that the
-changed config has already run.
+When the issue is tied to a PR, make sure you are looking at the same branch/SHA that preuser checked.
+Hosted preuser sees committed and pushed PR code/config, not uncommitted local worktree edits.
 
 ## Classify the failure
 
@@ -45,9 +44,9 @@ Use the evidence to put the issue in exactly one primary bucket, then list secon
 
 1. **No preuser run appeared.**
    Run `/preuser:status` first when `gh` is available. It checks preuser's first-party repo-status
-   endpoint for App selection, default-branch config, preview allowlist, and pause state. Tell the
+   endpoint for App selection, repo config visibility, preview allowlist, and pause state. Tell the
    user before sending their GitHub CLI token to preuser.ai. Then check whether the PR targets the
-   repo whose default branch preuser reads. Tell the user that discovery/Console setup never loosens
+   repo where preuser is installed/allowed. Tell the user that discovery/Console setup never loosens
    the fail-closed repo allowlist.
 
 2. **Config error.**
@@ -87,7 +86,7 @@ Use the evidence to put the issue in exactly one primary bucket, then list secon
    user type values into the app UI. `target.auth.basic`, `target.auth.cookies`, and
    `target.auth.headers` use sealed values to unlock supported pre-app gates before the page loads;
    VPN access and private allowlists are still unsupported. For a wrong sealed value, wrong repo
-   binding, or renamed repo, re-run `/preuser:seal NAME` for the base/default-branch repo.
+   binding, or renamed repo, re-run `/preuser:seal NAME` for the base repo that receives the PR.
 
 7. **The journey failed.**
    Read the run page video/timeline and compare the final frame to `success`. Fix journey text when
